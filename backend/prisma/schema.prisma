@@ -72,6 +72,7 @@ model Submission {
   aiFeedback    String?
   aiScore5s     Json?
   aiRiskLevel   String?
+  xpGain        Int?
   createdAt     DateTime   @default(now())
   userQuest     UserQuest  @relation(fields: [userQuestId], references: [id])
   workstation   Workstation @relation(fields: [workstationId], references: [id])
