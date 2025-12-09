@@ -4,7 +4,7 @@ import { ReactNode, createContext, useContext, useEffect, useState } from 'react
 import api, { setAuthToken } from './api';
 
 export type User = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   level?: number;

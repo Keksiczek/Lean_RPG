@@ -7,5 +7,3 @@ yarn-error.log*
 .env.local
 .env
 .DS_Store
-frontend/.next
-frontend/node_modules

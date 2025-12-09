@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,12 @@ export function RegisterForm() {
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Registrace selhala. Zkuste to prosím znovu.');
+      const message = isAxiosError(err)
+        ? (err.response?.data as { error?: string; message?: string })?.error ||
+          (err.response?.data as { error?: string; message?: string })?.message ||
+          'Něco se pokazilo.'
+        : 'Něco se pokazilo.';
+      setError(message);
     }
   };
 
