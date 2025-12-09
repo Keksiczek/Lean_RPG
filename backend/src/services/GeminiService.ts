@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import { analyzeSubmissionWithGemini } from "../lib/gemini.js";
 import { calculateXpGainForSubmission } from "../lib/xp.js";
@@ -41,7 +40,7 @@ export class GeminiService {
           where: { id: submission.id },
           data: {
             aiFeedback: analysis.feedback,
-            aiScore5s: analysis.score5s as Prisma.JsonValue,
+            aiScore5s: JSON.stringify(analysis.score5s),
             aiRiskLevel: analysis.riskLevel,
             xpGain,
             status: "completed",
