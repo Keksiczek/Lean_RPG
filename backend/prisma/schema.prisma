@@ -8,74 +8,78 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  password  String
-  name      String
-  role      String     @default("operator")
-  totalXp   Int        @default(0)
-  level     Int        @default(1)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         Int         @id @default(autoincrement())
+  email      String      @unique
+  password   String
+  name       String
+  role       String      @default("operator")
+  totalXp    Int         @default(0)
+  level      Int         @default(1)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   userQuests UserQuest[]
   xpLogs     XpLog[]
+  userSkills UserSkill[]
+  audits     Audit[]
 }
 
 model Area {
-  id            Int             @id @default(autoincrement())
-  name          String
-  description   String?
-  workstations  Workstation[]
-  quests        Quest[]
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String?
+  workstations   Workstation[]
+  quests         Quest[]
   knowledgePacks KnowledgePack[]
+  auditTemplates AuditTemplate[]
 }
 
 model Workstation {
-  id             Int           @id @default(autoincrement())
-  name           String
-  code           String?
-  areaId         Int
-  area           Area          @relation(fields: [areaId], references: [id])
-  submissions    Submission[]
+  id          Int          @id @default(autoincrement())
+  name        String
+  code        String?
+  areaId      Int
+  area        Area         @relation(fields: [areaId], references: [id])
+  submissions Submission[]
 }
 
 model Quest {
-  id          Int         @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   title       String
   description String
   type        String
-  baseXp      Int         @default(10)
-  isActive    Boolean     @default(true)
+  baseXp      Int           @default(10)
+  isActive    Boolean       @default(true)
   areaId      Int?
-  area        Area?       @relation(fields: [areaId], references: [id])
+  area        Area?         @relation(fields: [areaId], references: [id])
   userQuests  UserQuest[]
+  options     QuestOption[]
 }
 
 model UserQuest {
-  id           Int           @id @default(autoincrement())
-  userId       Int
-  questId      Int
-  status       String        @default("assigned")
-  assignedAt   DateTime      @default(now())
-  completedAt  DateTime?
-  user         User          @relation(fields: [userId], references: [id])
-  quest        Quest         @relation(fields: [questId], references: [id])
-  submissions  Submission[]
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  questId     Int
+  status      String       @default("assigned")
+  assignedAt  DateTime     @default(now())
+  completedAt DateTime?
+  user        User         @relation(fields: [userId], references: [id])
+  quest       Quest        @relation(fields: [questId], references: [id])
+  submissions Submission[]
 }
 
 model Submission {
-  id            Int        @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   userQuestId   Int
   workstationId Int
   textInput     String?
   imageUrl      String?
   aiFeedback    String?
-  aiScore5s     Json?
+  aiScore5s     String?
   aiRiskLevel   String?
   xpGain        Int?
-  status        String     @default("pending_analysis")
-  createdAt     DateTime   @default(now())
-  userQuest     UserQuest  @relation(fields: [userQuestId], references: [id])
+  status        String      @default("pending_analysis")
+  createdAt     DateTime    @default(now())
+  userQuest     UserQuest   @relation(fields: [userQuestId], references: [id])
   workstation   Workstation @relation(fields: [workstationId], references: [id])
 }
 
@@ -95,4 +99,77 @@ model KnowledgePack {
   shortName String
   content   String
   area      Area   @relation(fields: [areaId], references: [id])
+}
+
+// --- NEW MODELS ---
+
+model Skill {
+  id         Int         @id @default(autoincrement())
+  code       String      @unique
+  name       String
+  category   String
+  icon       String?
+  createdAt  DateTime    @default(now())
+  userSkills UserSkill[]
+}
+
+model UserSkill {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  skillId    Int
+  level      Int       @default(1)
+  xpInSkill  Int       @default(0)
+  unlockedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id])
+  skill      Skill     @relation(fields: [skillId], references: [id])
+
+  @@unique([userId, skillId])
+}
+
+model QuestOption {
+  id       Int    @id @default(autoincrement())
+  questId  Int
+  title    String
+  impact   String
+  feedback String
+  quest    Quest  @relation(fields: [questId], references: [id])
+}
+
+model AuditTemplate {
+  id     Int         @id @default(autoincrement())
+  name   String
+  type   String
+  areaId Int?
+  items  AuditItem[]
+  audits Audit[]
+  area   Area?       @relation(fields: [areaId], references: [id])
+}
+
+model AuditItem {
+  id         Int           @id @default(autoincrement())
+  templateId Int
+  question   String
+  weight     Int           @default(1)
+  template   AuditTemplate @relation(fields: [templateId], references: [id])
+  results    AuditResult[]
+}
+
+model Audit {
+  id         Int           @id @default(autoincrement())
+  userId     Int
+  templateId Int
+  score      Int?
+  results    AuditResult[]
+  createdAt  DateTime      @default(now())
+  user       User          @relation(fields: [userId], references: [id])
+  template   AuditTemplate @relation(fields: [templateId], references: [id])
+}
+
+model AuditResult {
+  id      Int       @id @default(autoincrement())
+  auditId Int
+  itemId  Int
+  score   Int
+  audit   Audit     @relation(fields: [auditId], references: [id])
+  item    AuditItem @relation(fields: [itemId], references: [id])
 }
