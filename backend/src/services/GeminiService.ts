@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import { analyzeSubmissionWithGemini } from "../lib/gemini.js";
 import { calculateXpGainForSubmission } from "../lib/xp.js";
@@ -28,6 +27,7 @@ export class GeminiService {
         textInput: submission.textInput ?? null,
         imageUrl: submission.imageUrl ?? null,
         areaContext,
+        requestId,
       });
 
       const xpGain = calculateXpGainForSubmission({
@@ -36,12 +36,12 @@ export class GeminiService {
         riskLevel: analysis.riskLevel,
       });
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: typeof prisma) => {
         await tx.submission.update({
           where: { id: submission.id },
           data: {
             aiFeedback: analysis.feedback,
-            aiScore5s: analysis.score5s as Prisma.JsonValue,
+            aiScore5s: analysis.score5s as unknown,
             aiRiskLevel: analysis.riskLevel,
             xpGain,
             status: "completed",

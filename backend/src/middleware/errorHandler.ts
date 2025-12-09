@@ -20,44 +20,52 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
-  const statusCode = err instanceof HttpError ? err.statusCode : 500;
   const requestId = (req as Request & { requestId?: string }).requestId;
+  const isDev = config.env !== "production";
+
+  let statusCode = 500;
+  let errorCode = "INTERNAL_SERVER_ERROR";
+  let message = "Internal server error";
+  let details: unknown;
 
   if (err instanceof ZodError) {
-    logger.warn({
-      message: "validation_error",
-      issues: err.issues,
-      requestId,
-    });
-    return res.status(400).json({
-      error: "Validation error",
-      code: 400,
-      issues: err.issues,
-      requestId,
-    });
-  }
+    statusCode = 400;
+    errorCode = "VALIDATION_ERROR";
+    message = "Validation error";
+    details = err.issues;
 
-  if (err instanceof HttpError) {
-    logger.error({
+    logger.warn("Validation error", { requestId, context: "error", issues: err.issues });
+  } else if (err instanceof HttpError) {
+    statusCode = err.statusCode;
+    errorCode = `HTTP_${statusCode}`;
+    message = err.message;
+    details = err.details;
+
+    logger.error("Handled HTTP error", {
+      requestId,
+      context: "error",
+      statusCode,
       message: err.message,
-      details: err.details,
-      requestId,
+      details,
     });
-    return res.status(err.statusCode).json({
+  } else if (err instanceof Error) {
+    message = err.message;
+    logger.error("Unhandled error", {
+      requestId,
+      context: "error",
+      statusCode,
       error: err.message,
-      code: err.statusCode,
-      details: err.details,
-      requestId,
+      stack: isDev ? err.stack : undefined,
     });
+  } else {
+    logger.error("Unknown error", { requestId, context: "error", error: err });
   }
 
-  logger.error({ message: "unhandled_error", error: err, requestId });
-  return res.status(statusCode).json({
-    error: "Internal server error",
-    code: statusCode,
+  res.status(statusCode).json({
+    error: message,
+    code: errorCode,
+    timestamp: new Date().toISOString(),
     requestId,
-    ...(config.env !== "production" && err instanceof Error
-      ? { stack: err.stack }
-      : {}),
+    ...(details && isDev ? { details } : {}),
   });
 }

@@ -141,3 +141,167 @@ Build and run the API with Redis locally:
 docker-compose up --build
 ```
 This starts the API on port `4000` and a Redis instance. SQLite data is persisted via the `sqlite_data` volume.
+
+## Production Setup
+
+### Docker
+
+Build image:
+```
+docker build -t lean-rpg-api .
+```
+
+Run with docker-compose:
+```
+docker-compose up -d
+```
+
+This will start:
+- **API**: Running on http://localhost:4000
+- **Redis**: Queue backend on port 6379
+- **SQLite DB**: Volume-mounted at `./data/dev.db`
+
+### Environment Variables
+
+See `.env.example` for all configuration options.
+
+Critical variables for production:
+- `JWT_SECRET` – must be 32+ chars (generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+- `DATABASE_URL` – set to proper SQLite path or cloud DB
+- `GEMINI_API_KEY` – Google Gemini API key
+- `NODE_ENV` – set to `production`
+- `LOG_LEVEL` – set to `warn` or `info`
+
+### Health Check
+
+Check if API is healthy:
+```
+curl http://localhost:4000/health
+```
+
+Response:
+```
+{
+  "status": "ok",
+  "timestamp": "2025-12-09T10:00:00Z",
+  "requestId": "uuid",
+  "details": {
+    "database": "connected",
+    "redis": "connected",
+    "memory": { "used": "45MB", "rss": "120MB" },
+    "uptime": 3600,
+    "gemini_circuit": "closed",
+    "hostname": "server.local"
+  }
+}
+```
+
+### Logging
+
+Logs are structured JSON written to:
+- **Console** (real-time, all levels in dev, warn+ in prod)
+- **`logs/error.log`** (errors only)
+- **`logs/combined.log`** (all levels)
+
+Log levels (in order of severity):
+- `error` – errors that stop operation
+- `warn` – warnings, potentially problematic
+- `info` – informational messages
+- `debug` – detailed debugging info
+
+### Gemini Resilience
+
+The system handles Gemini API failures gracefully:
+
+**Retry Strategy**:
+- Exponential backoff: 1s, 2s, 4s
+- Max retries: 3 attempts
+- Timeout: 30s per request
+
+**Circuit Breaker**:
+- Triggers OPEN state after 5 consecutive failures
+- Resets to HALF_OPEN after 60s of downtime
+- Returns to CLOSED after 2 successful requests
+
+**Fallback**:
+- If all retries fail, returns default safe response
+- User can retry later
+- No data loss
+
+### Async Queue (Bull + Redis)
+
+Long-running operations (Gemini analysis) are queued asynchronously:
+
+**How it works**:
+1. User submits → creates submission + queues job
+2. API returns 202 Accepted with polling URL
+3. Frontend polls `/submissions/:id` for status
+4. When complete, returns feedback + XP gain
+
+**Job Configuration**:
+- Max retries: 3
+- Backoff: exponential
+- Timeout: 60s per job
+- Auto-cleanup on completion
+
+### Database Migrations
+
+Run migrations:
+```
+npm run prisma:migrate
+```
+
+Reset database (dev only):
+```
+npm run prisma:migrate -- --reset
+```
+
+### Monitoring
+
+Key metrics to monitor:
+- Health endpoint response time
+- Queue job success/failure rate
+- Gemini circuit breaker state
+- Memory usage (watch for leaks)
+- Log error rate
+
+Monitor with:
+```
+# Watch health endpoint
+watch -n 5 'curl -s http://localhost:4000/health | jq'
+```
+
+### Security
+
+- All environment variables validated on startup
+- JWT secrets must be 32+ characters
+- CORS restricted to configured origin
+- Database credentials never logged
+- Structured logging includes requestId for tracing
+
+### Troubleshooting
+
+**API not starting**:
+```
+❌ Configuration Validation Error:
+   GEMINI_API_KEY: GEMINI_API_KEY is required
+```
+→ Check `.env` file, missing variable
+
+**Circuit breaker OPEN**:
+```
+Circuit breaker opened
+```
+→ Gemini API failing repeatedly. Check:
+- Network connectivity
+- API key validity
+- Gemini service status
+
+**Queue jobs failing**:
+```
+gemini_job_failed - error message
+```
+→ Check Redis connection and Gemini API.
+
+**Logs taking too much space**:
+→ Reduce `LOG_LEVEL` or rotate logs periodically.
