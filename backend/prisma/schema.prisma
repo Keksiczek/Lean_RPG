@@ -73,6 +73,7 @@ model Submission {
   aiScore5s     Json?
   aiRiskLevel   String?
   xpGain        Int?
+  status        String     @default("pending_analysis")
   createdAt     DateTime   @default(now())
   userQuest     UserQuest  @relation(fields: [userQuestId], references: [id])
   workstation   Workstation @relation(fields: [workstationId], references: [id])

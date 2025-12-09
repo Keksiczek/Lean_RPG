@@ -6,9 +6,11 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { config } from "../config.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { HttpError } from "../middleware/errorHandler.js";
+import { verifyToken } from "../middleware/auth.js";
 
 const router = Router();
-const JWT_SECRET = config.JWT_SECRET;
+const JWT_SECRET = config.auth.jwtSecret;
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -17,7 +19,7 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-const signupSchema = z.object({
+const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().min(1),
@@ -25,52 +27,63 @@ const signupSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string(),
 });
 
-function generateToken(payload: { userId: number; email: string; role: string }) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+function generateToken(payload: { userId: number; role: string }) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+}
+
+function toUserResponse(user: {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  totalXp: number;
+  level: number;
+  createdAt: Date;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    totalXp: user.totalXp,
+    level: user.level,
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
 router.post(
-  "/signup",
+  "/register",
   limiter,
   asyncHandler(async (req: Request, res: Response) => {
-  const parsed = signupSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
-  }
+    const { email, password, name } = registerSchema.parse(req.body);
 
-  const { email, password, name } = parsed.data;
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new HttpError("User already exists", 409);
+    }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return res.status(409).json({ message: "User already exists" });
-  }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: "operator",
+        totalXp: 0,
+        level: 1,
+      },
+    });
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-    },
-  });
+    const token = generateToken({ userId: user.id, role: user.role });
 
-  const token = generateToken({ userId: user.id, email: user.email, role: user.role });
-
-  return res.status(201).json({
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      totalXp: user.totalXp,
-      level: user.level,
-    },
-  });
+    return res.status(201).json({
+      user: toUserResponse(user),
+      token,
+    });
   })
 );
 
@@ -78,36 +91,41 @@ router.post(
   "/login",
   limiter,
   asyncHandler(async (req: Request, res: Response) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
-  }
+    const { email, password } = loginSchema.parse(req.body);
 
-  const { email, password } = parsed.data;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new HttpError("Invalid credentials", 401);
+    }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      throw new HttpError("Invalid credentials", 401);
+    }
 
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if (!passwordMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
+    const token = generateToken({ userId: user.id, role: user.role });
 
-  const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    return res.json({
+      user: toUserResponse(user),
+      token,
+    });
+  })
+);
 
-  return res.json({
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      totalXp: user.totalXp,
-      level: user.level,
-    },
-  });
+router.get(
+  "/me",
+  verifyToken,
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new HttpError("Unauthorized", 401);
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) {
+      throw new HttpError("User not found", 404);
+    }
+
+    return res.json({ user: toUserResponse(user) });
   })
 );
 

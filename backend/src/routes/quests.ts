@@ -33,7 +33,7 @@ router.post(
   const userQuest = await prisma.userQuest.create({
     data: {
       questId,
-      userId: req.user.id,
+      userId: req.user.userId,
       status: "assigned",
     },
     include: { quest: true },
@@ -51,7 +51,7 @@ router.get(
     }
 
     const myQuests = await prisma.userQuest.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.userId },
       include: { quest: true, submissions: true },
       orderBy: { assignedAt: "desc" },
     });
