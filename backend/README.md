@@ -30,12 +30,14 @@ Node.js + TypeScript backend for the Lean RPG Training App. Uses Express, Prisma
 Environment variables are listed in `.env.example`. Copy it to `.env` and adjust as needed.
 
 ## Environment variables
+- `APP_NAME` – Human-readable app label for logs/health responses (defaults to `Lean RPG Backend`).
 - `DATABASE_URL` – SQLite connection string for local development (defaults to `file:./dev.db`).
-- `JWT_SECRET` – Secret used to sign and verify JWT tokens.
+- `JWT_SECRET` – Secret used to sign and verify JWT tokens (required).
 - `PORT` – Port for the Express server (defaults to `4000`).
 - `GEMINI_API_KEY` – Optional; if absent, the app returns fallback AI analysis and keeps the server healthy.
 - `REDIS_URL` – Redis connection string (defaults to `redis://localhost:6379`).
-- `LOG_LEVEL` – Winston logger level (`error`, `warn`, `info`, `debug`).
+- `LOG_LEVEL` – Winston logger level (`error`, `warn`, `info`, `debug`). Default adjusts to `info` in production and `debug` otherwise.
+- `ENABLE_HTTP_LOGS` – Toggle request logging middleware (`true`/`false`).
 
 ## Project Structure
 - `src/index.ts` – Express server entrypoint with routes and middleware wiring.

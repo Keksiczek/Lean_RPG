@@ -8,7 +8,7 @@ export type GeminiJobData = {
   requestId?: string;
 };
 
-const geminiQueue = new Queue<GeminiJobData>("gemini-jobs", config.REDIS_URL);
+const geminiQueue = new Queue<GeminiJobData>("gemini-jobs", config.redis.url);
 
 export function enqueueGeminiAnalysisJob(jobData: GeminiJobData) {
   return geminiQueue.add(jobData, {

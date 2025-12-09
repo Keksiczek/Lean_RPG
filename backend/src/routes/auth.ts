@@ -10,7 +10,7 @@ import { HttpError } from "../middleware/errorHandler.js";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = Router();
-const JWT_SECRET = config.JWT_SECRET;
+const JWT_SECRET = config.auth.jwtSecret;
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

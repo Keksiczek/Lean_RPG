@@ -17,11 +17,13 @@ import { GeminiService } from "./services/GeminiService.js";
 import { registerGeminiProcessor } from "./queue/geminiJobs.js";
 
 const app = express();
-const PORT = config.PORT;
+const PORT = config.app.port;
 
 app.use(cors());
 app.use(express.json());
-app.use(requestLogger);
+if (config.logging.enableHttpLogs) {
+  app.use(requestLogger);
+}
 
 app.get(
   "/health",

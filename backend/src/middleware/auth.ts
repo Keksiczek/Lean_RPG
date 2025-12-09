@@ -13,7 +13,7 @@ declare module "express-serve-static-core" {
   }
 }
 
-const JWT_SECRET = config.JWT_SECRET;
+const JWT_SECRET = config.auth.jwtSecret;
 
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers["authorization"];

@@ -56,7 +56,7 @@ export function errorHandler(
     error: "Internal server error",
     code: statusCode,
     requestId,
-    ...(config.NODE_ENV !== "production" && err instanceof Error
+    ...(config.env !== "production" && err instanceof Error
       ? { stack: err.stack }
       : {}),
   });

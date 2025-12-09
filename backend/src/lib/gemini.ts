@@ -4,7 +4,7 @@ import { config } from "../config.js";
 import { CircuitBreaker } from "./circuitBreaker.js";
 import logger from "./logger.js";
 
-const GEMINI_API_KEY = config.GEMINI_API_KEY;
+const GEMINI_API_KEY = config.gemini.apiKey;
 const circuitBreaker = new CircuitBreaker(5, 60_000);
 
 export async function analyzeSubmissionWithGemini(input: {
