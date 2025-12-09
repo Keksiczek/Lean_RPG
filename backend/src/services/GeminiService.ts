@@ -27,6 +27,7 @@ export class GeminiService {
         textInput: submission.textInput ?? null,
         imageUrl: submission.imageUrl ?? null,
         areaContext,
+        requestId,
       });
 
       const xpGain = calculateXpGainForSubmission({
@@ -35,7 +36,7 @@ export class GeminiService {
         riskLevel: analysis.riskLevel,
       });
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: typeof prisma) => {
         await tx.submission.update({
           where: { id: submission.id },
           data: {

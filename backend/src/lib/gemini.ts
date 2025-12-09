@@ -1,155 +1,175 @@
 import { Gemini5SScore, GeminiSubmissionAnalysis } from "./geminiTypes.js";
 import { buildGeminiPrompt } from "./geminiPrompt.js";
 import { config } from "../config.js";
-import { CircuitBreaker } from "./circuitBreaker.js";
+import { CircuitBreaker, CircuitState } from "./circuitBreaker.js";
 import logger from "./logger.js";
 
-const GEMINI_API_KEY = config.gemini.apiKey;
-const circuitBreaker = new CircuitBreaker(5, 60_000);
+const geminiCircuitBreaker = new CircuitBreaker({
+  failureThreshold: 5,
+  resetTimeoutMs: 60_000,
+  successThreshold: 2,
+});
 
-export async function analyzeSubmissionWithGemini(input: {
+type SubmissionInput = {
   textInput: string | null;
   imageUrl: string | null;
   areaContext: string | null;
-}): Promise<GeminiSubmissionAnalysis> {
-  if (!circuitBreaker.canRequest()) {
-    logger.warn({
-      message: "gemini_circuit_open",
-      failureCount: circuitBreaker.getFailureCount(),
+  requestId?: string;
+};
+
+const FALLBACK_ANALYSIS: GeminiSubmissionAnalysis & { isAiGenerated?: boolean } = {
+  feedback:
+    "AI feedback není dostupné. Prosím zkontrolujte vstup a zkuste to znovu.",
+  score5s: {
+    Seiri: 50,
+    Seiton: 50,
+    Seiso: 50,
+    Seiketsu: 50,
+    Shitsuke: 50,
+  },
+  riskLevel: "medium",
+  isAiGenerated: false,
+};
+
+export async function analyzeSubmissionWithGemini(
+  input: SubmissionInput
+): Promise<GeminiSubmissionAnalysis & { isAiGenerated?: boolean }> {
+  const { textInput, imageUrl, areaContext, requestId } = input;
+
+  if (!config.gemini.apiKey) {
+    logger.warn("Gemini API key missing; returning fallback analysis", {
+      context: "gemini",
+      requestId,
     });
-    return fallbackAnalysis("Circuit is open; returning fallback analysis");
+    return FALLBACK_ANALYSIS;
   }
 
-  if (!GEMINI_API_KEY) {
-    logger.warn({ message: "gemini_api_key_missing" });
-    return fallbackAnalysis("Gemini API key missing; using fallback analysis");
+  if (geminiCircuitBreaker.getState() === "OPEN") {
+    logger.warn("Gemini circuit breaker is OPEN", {
+      context: "gemini",
+      requestId,
+    });
+    return FALLBACK_ANALYSIS;
   }
 
-  const prompt = buildGeminiPrompt({
-    textInput: input.textInput,
-    imageUrl: input.imageUrl,
-    areaContext: input.areaContext,
-  });
+  const prompt = buildGeminiPrompt({ textInput, imageUrl, areaContext });
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.gemini.apiKey}`;
 
-  // TODO: Replace the placeholder URL with the official Gemini endpoint once available.
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-
-  try {
-    const response = await callGeminiWithRetry(endpoint, prompt);
-    const data = (await response.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-
-    const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    const parsed = parseGeminiResponse(modelText);
-    circuitBreaker.recordSuccess();
-    return parsed;
-  } catch (error) {
-    circuitBreaker.recordFailure();
-    logger.error({ message: "gemini_analysis_failed", error });
-    return fallbackAnalysis("Gemini call failed; using fallback analysis");
-  }
-}
-
-async function callGeminiWithRetry(endpoint: string, prompt: string) {
-  const maxAttempts = 3;
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (attempt < maxAttempts) {
+  for (let attempt = 0; attempt < config.gemini.maxRetries; attempt++) {
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          // TODO: Add image parts when image upload/storage is implemented.
-        }),
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Gemini request failed: ${response.status} ${body}`);
-      }
-
-      return response;
-    } catch (error) {
-      lastError = error;
-      attempt += 1;
-      if (attempt >= maxAttempts) {
-        break;
-      }
-      const backoffMs = 2 ** (attempt - 1) * 500;
-      logger.warn({
-        message: "gemini_retry",
+      logger.info("Calling Gemini", {
+        context: "gemini",
+        requestId,
         attempt,
-        backoffMs,
-        error,
       });
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
+      const response = await geminiCircuitBreaker.execute(async () =>
+        callGeminiAPI(endpoint, prompt, requestId)
+      );
+
+      const data = (await response.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      const parsed = parseGeminiResponse(modelText);
+      logger.info("Gemini analysis succeeded", {
+        context: "gemini",
+        requestId,
+        attempt,
+      });
+      return parsed;
+    } catch (error) {
+      const isLastAttempt = attempt === config.gemini.maxRetries - 1;
+      const delay = 2 ** attempt * 1000;
+      logger.warn("Gemini call failed", {
+        context: "gemini",
+        requestId,
+        attempt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (isLastAttempt || geminiCircuitBreaker.getState() === "OPEN") {
+        logger.error("Gemini failed after retries; returning fallback", {
+          context: "gemini",
+          requestId,
+        });
+        return FALLBACK_ANALYSIS;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
-  throw lastError ?? new Error("Unknown Gemini error");
+  return FALLBACK_ANALYSIS;
 }
 
-function parseGeminiResponse(text: string): GeminiSubmissionAnalysis {
-  // Basic parsing fallback; expects the model to return a structured block.
-  // If parsing fails, return conservative defaults.
+function parseGeminiResponse(text: string): GeminiSubmissionAnalysis & {
+  isAiGenerated?: boolean;
+} {
   try {
     const match = /```json\n(?<json>{[\s\S]*?})\n```/m.exec(text);
     if (match?.groups?.json) {
       const json = JSON.parse(match.groups.json) as GeminiSubmissionAnalysis;
-      return json;
+      return { ...json, isAiGenerated: true };
     }
   } catch (err) {
-    logger.warn({
-      message: "gemini_parse_failed",
-      error: err,
+    logger.warn("Gemini response parsing failed", {
+      context: "gemini",
+      error: err instanceof Error ? err.message : String(err),
     });
   }
 
-  const defaultScore: Gemini5SScore = {
-    Seiri: 50,
-    Seiton: 50,
-    Seiso: 50,
-    Seiketsu: 50,
-    Shitsuke: 50,
-  };
-
-  return {
-    feedback:
-      text ||
-      "AI feedback není dostupné. Prosím zkontrolujte vstup a zkuste to znovu.",
-    score5s: defaultScore,
-    riskLevel: "medium",
-  };
+  return FALLBACK_ANALYSIS;
 }
 
-function fallbackAnalysis(reason: string): GeminiSubmissionAnalysis {
-  const defaultScore: Gemini5SScore = {
-    Seiri: 50,
-    Seiton: 50,
-    Seiso: 50,
-    Seiketsu: 50,
-    Shitsuke: 50,
-  };
+async function callGeminiAPI(
+  endpoint: string,
+  prompt: string,
+  requestId?: string
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    config.gemini.timeoutMs
+  );
 
-  return {
-    feedback:
-      "AI feedback není dostupné. Prosím zkontrolujte vstup a zkuste to znovu."
-      + (reason ? ` (${reason})` : ""),
-    score5s: defaultScore,
-    riskLevel: "medium",
-  };
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Gemini request failed: ${response.status} ${body}`);
+    }
+
+    return response;
+  } catch (error) {
+    if ((error as Error).name === "AbortError") {
+      throw new Error(`Gemini API timeout after ${config.gemini.timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export function getGeminiCircuitState(): CircuitState {
+  return geminiCircuitBreaker.getState();
 }

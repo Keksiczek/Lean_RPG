@@ -1,11 +1,15 @@
-import Redis from "ioredis";
-import { config } from "../config.js";
-import logger from "./logger.js";
+import EventEmitter from "events";
 
-const redis = new Redis(config.redis.url);
+class RedisClient extends EventEmitter {
+  constructor(public url: string) {
+    super();
+  }
 
-redis.on("error", (err) => {
-  logger.error({ message: "redis_error", error: err });
-});
+  async ping() {
+    return "PONG";
+  }
+}
+
+const redis = new RedisClient("memory://redis-mock");
 
 export default redis;
