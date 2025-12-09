@@ -4,6 +4,7 @@ import prisma from "../lib/prisma.js";
 import redis from "../lib/redis.js";
 import { geminiService } from "../services/GeminiService.js";
 import logger from "../lib/logger.js";
+import { getQueueStats } from "../queue/queueFactory.js";
 
 const router = Router();
 
@@ -25,6 +26,12 @@ interface HealthResponse {
     gemini_failures: number;
     gemini_last_failure: Date | null;
     hostname: string;
+    queue_stats?: {
+      waiting: number;
+      active: number;
+      completed: number;
+      failed: number;
+    };
   };
 }
 
@@ -61,6 +68,17 @@ router.get("/health", async (req: Request, res: Response) => {
     const memRss = Math.round(memUsage.rss / 1024 / 1024);
 
     const circuitState = geminiService.getCircuitBreakerState();
+    let queueStats: HealthResponse["details"]["queue_stats"];
+    try {
+      const stats = await getQueueStats();
+      queueStats = stats.summary;
+    } catch (error) {
+      logger.error("Healthcheck queue stats failed", {
+        context: "health",
+        error,
+        requestId,
+      });
+    }
 
     let status: HealthStatus = "ok";
     if (dbStatus === "error" && redisStatus === "error") {
@@ -89,6 +107,7 @@ router.get("/health", async (req: Request, res: Response) => {
         gemini_failures: circuitState.failureCount,
         gemini_last_failure: circuitState.lastFailure,
         hostname: os.hostname(),
+        queue_stats: queueStats,
       },
     };
 

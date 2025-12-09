@@ -37,6 +37,10 @@ const envSchema = z
         return value === "true" || value === "1";
       }),
     APP_NAME: z.string().default("Lean RPG Backend"),
+    BULL_QUEUE_MAX_RETRIES: z.coerce.number().int().positive().default(3),
+    BULL_QUEUE_RETRY_DELAY: z.coerce.number().int().positive().default(2000),
+    BULL_QUEUE_JOB_TIMEOUT: z.coerce.number().int().positive().default(120_000),
+    BULL_QUEUE_MAX_CONCURRENCY: z.coerce.number().int().positive().default(5),
   })
   .transform((env) => ({
     ...env,
@@ -85,6 +89,15 @@ export const config = {
   logging: {
     level: env.LOG_LEVEL,
     enableHttpLogs: env.ENABLE_HTTP_LOGS,
+  },
+  queue: {
+    submission: {
+      maxRetries: env.BULL_QUEUE_MAX_RETRIES,
+      retryDelay: env.BULL_QUEUE_RETRY_DELAY,
+      jobTimeout: env.BULL_QUEUE_JOB_TIMEOUT,
+      maxConcurrency: env.BULL_QUEUE_MAX_CONCURRENCY,
+      cleanupInterval: 3_600_000,
+    },
   },
 } as const;
 

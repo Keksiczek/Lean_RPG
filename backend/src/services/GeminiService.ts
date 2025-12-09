@@ -80,6 +80,11 @@ export class GeminiService {
       circuitBreakerState: this.circuitBreaker.getState(),
     });
 
+    await (prisma as any).submission.update({
+      where: { id: submission.id },
+      data: { status: "analyzing" },
+    });
+
     try {
       const analysis = await this.analyzeWithResilience(submission, requestId);
 
@@ -161,7 +166,7 @@ export class GeminiService {
           minTimeout: 1_000,
           maxTimeout: 4_000,
           factor: 2,
-          onFailedAttempt: (retryError) => {
+          onFailedAttempt: (retryError: any) => {
             logger.warn({
               message: "gemini_request_retry",
               submissionId: submission.id,
