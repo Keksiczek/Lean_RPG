@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { Quest } from '@/components/game/quest-card';
+import type { Quest, UserQuest } from '@/types/quest';
 
 export default function QuestDetailPage() {
   const params = useParams();
@@ -24,6 +24,11 @@ export default function QuestDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState(false);
+  const [userQuest, setUserQuest] = useState<UserQuest | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitted' | 'pending' | 'evaluated'>('idle');
+  const [xpGain, setXpGain] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!questId) return;
@@ -42,6 +47,21 @@ export default function QuestDetailPage() {
     fetchQuest();
   }, [questId]);
 
+  const handleAccept = async () => {
+    if (!questId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await api.post(`/api/quests/${questId}/accept`);
+      setUserQuest(response.data as UserQuest);
+      setAccepted(true);
+    } catch (err) {
+      setError('Nepodařilo se přijmout úkol.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!questId || !submission.trim()) return;
     setSubmitting(true);
@@ -49,14 +69,27 @@ export default function QuestDetailPage() {
     setMessage(null);
 
     try {
-      await api.post('/api/submissions', {
+      const res = await api.post('/api/submissions', {
         questId: Number(questId),
         content: submission,
       });
+      setSubmissionStatus('submitted');
       setMessage('Úkol odeslán ke kontrole!');
-      setTimeout(() => {
-        router.push('/quests');
-      }, 800);
+      const submissionId = res.data.submissionId;
+      const poll = setInterval(async () => {
+        const statusRes = await api.get(`/api/submissions/${submissionId}`);
+        const data = statusRes.data;
+        if (data.status === 'evaluated') {
+          setSubmissionStatus('evaluated');
+          setXpGain(data.xpGain ?? null);
+          setFeedback(data.aiFeedback ?? null);
+          setMessage(`Hotovo! Získali jste ${data.xpGain ?? 0} XP!`);
+          clearInterval(poll);
+          setTimeout(() => router.push('/dashboard'), 1500);
+        } else {
+          setSubmissionStatus('pending');
+        }
+      }, 2000);
     } catch (err) {
       console.error('Unable to submit quest', err);
       setError('Nepodařilo se odeslat řešení. Zkuste to prosím znovu.');
@@ -115,25 +148,56 @@ export default function QuestDetailPage() {
 
       <Card title="Odevzdat řešení" description="Popište své řešení nebo přidejte odkaz na soubor.">
         <div className="space-y-3">
-          <label className="text-sm font-medium text-gray-700" htmlFor="submission">
-            Textové řešení
-          </label>
-          <textarea
-            id="submission"
-            className="w-full rounded-lg border border-gray-200 p-3 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-            rows={6}
-            value={submission}
-            onChange={(e) => setSubmission(e.target.value)}
-            placeholder="Popište svůj postup, přínosy nebo přidejte odkaz na soubor."
-          />
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {message ? <p className="text-sm text-green-600">{message}</p> : null}
-          <div className="flex justify-end">
-            <Button onClick={handleSubmit} disabled={submitting || !submission.trim()} className="inline-flex items-center gap-2">
+          {!accepted ? (
+            <Button onClick={handleAccept} disabled={submitting} className="inline-flex items-center gap-2">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Odeslat řešení
+              Přijmout úkol
             </Button>
-          </div>
+          ) : (
+            <>
+              <label className="text-sm font-medium text-gray-700" htmlFor="submission">
+                Textové řešení
+              </label>
+              <textarea
+                id="submission"
+                className="w-full rounded-lg border border-gray-200 p-3 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                rows={6}
+                maxLength={5000}
+                value={submission}
+                onChange={(e) => setSubmission(e.target.value)}
+                placeholder="Popište svůj postup, přínosy nebo přidejte odkaz na soubor."
+              />
+              <p className="text-sm text-gray-500">{submission.length} / 5000</p>
+              {error ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-600">{error}</p>
+                  <Button variant="secondary" onClick={handleSubmit} disabled={submitting}>
+                    Zkusit znovu
+                  </Button>
+                </div>
+              ) : null}
+              {message ? <p className="text-sm text-green-600">{message}</p> : null}
+              {submissionStatus === 'pending' ? (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Zpracovávám vaše řešení... (to může trvat několik sekund)</span>
+                </div>
+              ) : null}
+              <div className="flex justify-end">
+                <Button onClick={handleSubmit} disabled={submitting || !submission.trim()} className="inline-flex items-center gap-2">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  Odeslat řešení
+                </Button>
+              </div>
+            </>
+          )}
+          {submissionStatus === 'evaluated' && (
+            <Card className="bg-green-50 border-green-200">
+              <h3 className="font-semibold text-green-900">Zpětná vazba</h3>
+              <p className="text-sm text-green-800 mt-2">{feedback}</p>
+              {xpGain !== null ? <Badge className="mt-2">+{xpGain} XP</Badge> : null}
+            </Card>
+          )}
         </div>
       </Card>
     </div>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { enqueueGeminiAnalysisJob } from "../queue/geminiJobs.js";
 
 const router = Router();
 
@@ -31,13 +32,21 @@ router.post(
         questId,
         content,
         userId: req.user.userId,
-        status: "submitted",
+        status: "pending_analysis",
       },
     });
 
-    return res.status(201).json({
+    const job = await enqueueGeminiAnalysisJob({
+      submissionId: submission.id,
+      requestId: req.requestId,
+    });
+
+    return res.status(202).json({
       success: true,
       submissionId: submission.id,
+      jobId: job.id,
+      status: submission.status,
+      pollUrl: `/api/submissions/${submission.id}`,
     });
   })
 );

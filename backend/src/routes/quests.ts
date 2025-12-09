@@ -13,6 +13,44 @@ router.get(
 );
 
 router.post(
+  "/:id/accept",
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const questId = Number(req.params.id);
+    if (Number.isNaN(questId)) {
+      return res.status(400).json({ message: "Invalid quest id" });
+    }
+
+    const quest = await prisma.quest.findUnique({ where: { id: questId } });
+    if (!quest || !quest.isActive) {
+      return res.status(404).json({ message: "Quest not found" });
+    }
+
+    const existing = await prisma.userQuest.findFirst({
+      where: { userId: req.user.userId, questId },
+    });
+
+    if (existing) {
+      return res.status(409).json({ message: "Already accepted" });
+    }
+
+    const userQuest = await prisma.userQuest.create({
+      data: {
+        userId: req.user.userId,
+        questId,
+        status: "in_progress",
+        acceptedAt: new Date(),
+      },
+    });
+
+    return res.json(userQuest);
+  })
+);
+
+router.post(
   "/assign",
   asyncHandler(async (req: Request, res: Response) => {
     const { questId } = req.body as { questId?: number };

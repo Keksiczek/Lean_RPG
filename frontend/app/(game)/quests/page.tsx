@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
-import { QuestCard, Quest } from '@/components/game/quest-card';
+import { QuestCard } from '@/components/game/quest-card';
+import type { Quest } from '@/types/quest';
 
 export default function QuestsPage() {
   const [quests, setQuests] = useState<Quest[]>([]);

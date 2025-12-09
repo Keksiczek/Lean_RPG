@@ -2,15 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-export type Quest = {
-  id: number;
-  title: string;
-  description: string;
-  baseXp: number;
-  briefText?: string | null;
-  leanConcept?: string | null;
-};
+import type { Quest } from '@/types/quest';
 
 export function QuestCard({ quest }: { quest: Quest }) {
   return (
