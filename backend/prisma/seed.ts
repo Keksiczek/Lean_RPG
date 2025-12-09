@@ -98,10 +98,64 @@ async function seedAuditTemplates(areasByName: Record<string, number>) {
   }
 }
 
+async function seedQuests() {
+  const quests = [
+    {
+      title: "Welcome to Lean RPG",
+      description: "Nauč se základy Lean methodologie a 5S.",
+      briefText: "Tvá první mise. Poznáš světem Lean a začneš budovat své dovednosti.",
+      baseXp: 50,
+      difficulty: "easy",
+      leanConcept: "5S",
+      type: "story",
+    },
+    {
+      title: "First 5S Audit",
+      description: "Proveď svou první audit podle 5S - Sort, Set in order, Shine, Standardize, Sustain.",
+      briefText: "Zkontroluj pracoviště a aplikuj principy 5S.",
+      baseXp: 100,
+      difficulty: "medium",
+      leanConcept: "5S",
+      type: "mission",
+    },
+    {
+      title: "Identify Waste (Muda)",
+      description: "Najdi druhy muda ve virtuálním procesu a navrhni zlepšení.",
+      briefText: "Procvič si identifikaci plýtvání v procesu.",
+      baseXp: 75,
+      difficulty: "medium",
+      leanConcept: "Muda",
+      type: "challenge",
+    },
+    {
+      title: "Problem Solving with 5 Why",
+      description: "Řeš problém pomocí techniky 5 Why.",
+      briefText: "Když se na lince objeví chyba, zjisti skutečnou příčinu.",
+      baseXp: 80,
+      difficulty: "medium",
+      leanConcept: "Problem Solving",
+      type: "challenge",
+    },
+    {
+      title: "Master Kaizen Ideas",
+      description: "Sbír a implementuj návrhy na zlepšení od týmu.",
+      briefText: "Vede tým k nepřetržitému zlepšování skrz Kaizen.",
+      baseXp: 120,
+      difficulty: "hard",
+      leanConcept: "Kaizen",
+      type: "mission",
+    },
+  ];
+
+  await prisma.quest.deleteMany({ where: { title: { in: quests.map((quest) => quest.title) } } });
+  await prisma.quest.createMany({ data: quests });
+}
+
 async function main() {
   await seedSkills();
   const areasByName = await seedAreas();
   await seedAuditTemplates(areasByName);
+  await seedQuests();
 }
 
 main()

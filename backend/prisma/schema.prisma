@@ -48,6 +48,9 @@ model Quest {
   description String
   type        String
   baseXp      Int           @default(10)
+  briefText   String?
+  difficulty  String        @default("easy")
+  leanConcept String?
   isActive    Boolean       @default(true)
   areaId      Int?
   area        Area?         @relation(fields: [areaId], references: [id])
