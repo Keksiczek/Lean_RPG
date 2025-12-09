@@ -56,7 +56,7 @@ router.post(
       );
     }
 
-    const submission = await prisma.submission.create({
+    const submission = await (prisma as any).submission.create({
       data: {
         questId,
         content,
@@ -104,7 +104,7 @@ router.get(
       });
     }
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await (prisma as any).submission.findUnique({
       where: { id: submissionId },
       include: {
         quest: true,

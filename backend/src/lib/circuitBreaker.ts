@@ -1,103 +1,79 @@
-import logger from "./logger.js";
-
-export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
-
-interface CircuitBreakerOptions {
-  failureThreshold?: number;
-  resetTimeoutMs?: number;
-  successThreshold?: number;
+export interface CircuitBreakerConfig {
+  failureThreshold?: number; // Open circuit after N failures
+  resetTimeout?: number; // How long to stay open before testing again (ms)
+  monitoringInterval?: number; // Reserved for future monitoring hooks
 }
 
+export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
+
 export class CircuitBreaker {
+  private state: CircuitBreakerState = 'closed';
   private failureCount = 0;
   private successCount = 0;
-  private state: CircuitState = "CLOSED";
-  private lastFailureTime = 0;
-  private readonly failureThreshold: number;
-  private readonly resetTimeoutMs: number;
-  private readonly successThreshold: number;
+  private lastFailureTime: number | null = null;
+  private readonly config: Required<CircuitBreakerConfig>;
 
-  constructor(options: CircuitBreakerOptions = {}) {
-    this.failureThreshold = options.failureThreshold ?? 5;
-    this.resetTimeoutMs = options.resetTimeoutMs ?? 60_000;
-    this.successThreshold = options.successThreshold ?? 2;
-    logger.info("Circuit breaker initialized", {
-      context: "circuit-breaker",
-      config: {
-        failureThreshold: this.failureThreshold,
-        resetTimeoutMs: this.resetTimeoutMs,
-        successThreshold: this.successThreshold,
-      },
-    });
+  constructor(config: CircuitBreakerConfig = {}) {
+    this.config = {
+      failureThreshold: config.failureThreshold ?? 5,
+      resetTimeout: config.resetTimeout ?? 60_000,
+      monitoringInterval: config.monitoringInterval ?? 5_000,
+    };
   }
 
-  getState(): CircuitState {
-    if (this.state === "OPEN") {
-      const timeSinceFailure = Date.now() - this.lastFailureTime;
-      if (timeSinceFailure > this.resetTimeoutMs) {
-        logger.info("Circuit breaker timeout reached, moving to HALF_OPEN", {
-          context: "circuit-breaker",
-        });
-        this.state = "HALF_OPEN";
+  public isAvailable(): boolean {
+    if (this.state === 'closed') {
+      return true;
+    }
+
+    if (this.state === 'open') {
+      const timeSinceFailure = Date.now() - (this.lastFailureTime ?? Date.now());
+      if (timeSinceFailure > this.config.resetTimeout) {
+        this.state = 'half-open';
         this.successCount = 0;
+        return true;
       }
+      return false;
     }
-    return this.state;
+
+    if (this.state === 'half-open') {
+      return true;
+    }
+
+    return false;
   }
 
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    const state = this.getState();
-    if (state === "OPEN") {
-      logger.warn("Circuit breaker OPEN, rejecting request", {
-        context: "circuit-breaker",
-      });
-      throw new Error("Circuit breaker is OPEN");
-    }
+  public recordSuccess(): void {
+    this.failureCount = 0;
+    this.lastFailureTime = null;
 
-    try {
-      const result = await fn();
-      this.recordSuccess();
-      return result;
-    } catch (error) {
-      this.recordFailure();
-      throw error;
+    if (this.state === 'half-open') {
+      this.state = 'closed';
+      this.successCount = 0;
     }
   }
 
-  private recordSuccess() {
-    if (this.state === "HALF_OPEN") {
-      this.successCount += 1;
-      logger.info("Circuit breaker HALF_OPEN success", {
-        context: "circuit-breaker",
-        successCount: this.successCount,
-        successThreshold: this.successThreshold,
-      });
-      if (this.successCount >= this.successThreshold) {
-        this.state = "CLOSED";
-        this.failureCount = 0;
-        this.successCount = 0;
-        logger.info("Circuit breaker CLOSED after successful probes", {
-          context: "circuit-breaker",
-        });
-      }
-    } else {
-      this.failureCount = 0;
-    }
-  }
-
-  private recordFailure() {
+  public recordFailure(): void {
     this.failureCount += 1;
     this.lastFailureTime = Date.now();
-    logger.warn("Circuit breaker failure recorded", {
-      context: "circuit-breaker",
-      failureCount: this.failureCount,
-    });
-    if (this.failureCount >= this.failureThreshold) {
-      this.state = "OPEN";
-      logger.error("Circuit breaker opened", {
-        context: "circuit-breaker",
-        failureCount: this.failureCount,
-      });
+
+    if (this.failureCount >= this.config.failureThreshold) {
+      this.state = 'open';
     }
+  }
+
+  public getState(): { state: CircuitBreakerState; failureCount: number; lastFailure: Date | null } {
+    return {
+      state: this.state,
+      failureCount: this.failureCount,
+      lastFailure: this.lastFailureTime ? new Date(this.lastFailureTime) : null,
+    };
+  }
+
+  public reset(): void {
+    this.state = 'closed';
+    this.failureCount = 0;
+    this.successCount = 0;
+    this.lastFailureTime = null;
   }
 }

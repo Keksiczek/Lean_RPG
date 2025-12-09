@@ -11,7 +11,7 @@ import { config } from "./config.js";
 import { requestLogger } from "./middleware/logger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import logger from "./lib/logger.js";
-import { GeminiService } from "./services/GeminiService.js";
+import { geminiService } from "./services/GeminiService.js";
 import { registerGeminiProcessor } from "./queue/geminiJobs.js";
 
 const app = express();
@@ -37,7 +37,6 @@ app.use("/api/users", verifyToken, userRoutes);
 app.use("/api/areas", verifyToken, areaRoutes);
 app.use(healthRouter);
 
-const geminiService = new GeminiService();
 registerGeminiProcessor(geminiService);
 
 app.use((req, res) => {

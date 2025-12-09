@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import os from "os";
 import prisma from "../lib/prisma.js";
 import redis from "../lib/redis.js";
-import { getGeminiCircuitState } from "../lib/gemini.js";
+import { geminiService } from "../services/GeminiService.js";
 import logger from "../lib/logger.js";
 
 const router = Router();
@@ -22,6 +22,8 @@ interface HealthResponse {
     };
     uptime: number;
     gemini_circuit: string;
+    gemini_failures: number;
+    gemini_last_failure: Date | null;
     hostname: string;
   };
 }
@@ -58,12 +60,16 @@ router.get("/health", async (req: Request, res: Response) => {
     const memUsed = Math.round(memUsage.heapUsed / 1024 / 1024);
     const memRss = Math.round(memUsage.rss / 1024 / 1024);
 
-    const circuitState = getGeminiCircuitState();
+    const circuitState = geminiService.getCircuitBreakerState();
 
     let status: HealthStatus = "ok";
     if (dbStatus === "error" && redisStatus === "error") {
       status = "error";
-    } else if (dbStatus === "error" || redisStatus === "error" || circuitState === "OPEN") {
+    } else if (
+      dbStatus === "error" ||
+      redisStatus === "error" ||
+      circuitState.state === "open"
+    ) {
       status = "degraded";
     }
 
@@ -79,7 +85,9 @@ router.get("/health", async (req: Request, res: Response) => {
           rss: `${memRss}MB`,
         },
         uptime: Math.floor(process.uptime()),
-        gemini_circuit: circuitState,
+        gemini_circuit: circuitState.state,
+        gemini_failures: circuitState.failureCount,
+        gemini_last_failure: circuitState.lastFailure,
         hostname: os.hostname(),
       },
     };

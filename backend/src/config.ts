@@ -13,7 +13,17 @@ const envSchema = z
     JWT_EXPIRY: z.string().default("1h"),
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_TIMEOUT: z.coerce.number().int().positive().default(30_000),
-    GEMINI_MAX_RETRIES: z.coerce.number().int().positive().default(3),
+    GEMINI_MAX_RETRIES: z.coerce.number().int().positive().default(2),
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(5),
+    CIRCUIT_BREAKER_RESET_TIMEOUT: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(60_000),
     REDIS_URL: z.string().default("redis://localhost:6379"),
     CORS_ORIGIN: z.string().default("*"),
     LOG_LEVEL: z
@@ -61,6 +71,10 @@ export const config = {
     apiKey: env.GEMINI_API_KEY,
     timeoutMs: env.GEMINI_TIMEOUT,
     maxRetries: env.GEMINI_MAX_RETRIES,
+    circuitBreaker: {
+      failureThreshold: env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+      resetTimeout: env.CIRCUIT_BREAKER_RESET_TIMEOUT,
+    },
   },
   redis: {
     url: env.REDIS_URL,

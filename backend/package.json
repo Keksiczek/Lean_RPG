@@ -18,12 +18,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
+    "axios": "file:vendor/axios",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.3.0",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
+    "p-retry": "file:vendor/p-retry",
     "uuid": "^9.0.1",
     "winston": "^3.14.2",
     "zod": "^3.23.8"
