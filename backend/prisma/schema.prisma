@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String
+  role      String     @default("operator")
+  totalXp   Int        @default(0)
+  level     Int        @default(1)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userQuests UserQuest[]
+  xpLogs     XpLog[]
+}
+
+model Area {
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String?
+  workstations  Workstation[]
+  quests        Quest[]
+  knowledgePacks KnowledgePack[]
+}
+
+model Workstation {
+  id             Int           @id @default(autoincrement())
+  name           String
+  code           String?
+  areaId         Int
+  area           Area          @relation(fields: [areaId], references: [id])
+  submissions    Submission[]
+}
+
+model Quest {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String
+  type        String
+  baseXp      Int         @default(10)
+  isActive    Boolean     @default(true)
+  areaId      Int?
+  area        Area?       @relation(fields: [areaId], references: [id])
+  userQuests  UserQuest[]
+}
+
+model UserQuest {
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  questId      Int
+  status       String        @default("assigned")
+  assignedAt   DateTime      @default(now())
+  completedAt  DateTime?
+  user         User          @relation(fields: [userId], references: [id])
+  quest        Quest         @relation(fields: [questId], references: [id])
+  submissions  Submission[]
+}
+
+model Submission {
+  id            Int        @id @default(autoincrement())
+  userQuestId   Int
+  workstationId Int
+  textInput     String?
+  imageUrl      String?
+  aiFeedback    String?
+  aiScore5s     Json?
+  aiRiskLevel   String?
+  xpGain        Int?
+  createdAt     DateTime   @default(now())
+  userQuest     UserQuest  @relation(fields: [userQuestId], references: [id])
+  workstation   Workstation @relation(fields: [workstationId], references: [id])
+}
+
+model XpLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  source    String
+  xpChange  Int
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model KnowledgePack {
+  id        Int    @id @default(autoincrement())
+  areaId    Int
+  shortName String
+  content   String
+  area      Area   @relation(fields: [areaId], references: [id])
+}
