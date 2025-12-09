@@ -1,26 +1,38 @@
 import { Request, Response, NextFunction } from "express";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import logger from "../lib/logger.js";
 
 declare module "express-serve-static-core" {
   interface Request {
     requestId?: string;
+    startTime?: number;
   }
 }
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
-  const requestId = uuidv4();
-  req.requestId = requestId;
-  res.locals.requestId = requestId;
-  res.setHeader("X-Request-Id", requestId);
+  req.requestId = req.requestId ?? randomUUID();
+  res.locals.requestId = req.requestId;
+  res.setHeader("X-Request-Id", req.requestId ?? "");
 
-  const startTime = process.hrtime.bigint();
+  // Skip verbose logging for health checks
+  if (req.path === "/health") {
+    return next();
+  }
+
+  req.startTime = Date.now();
+
+  logger.info("Incoming request", {
+    requestId: req.requestId,
+    context: "request",
+    method: req.method,
+    url: req.originalUrl,
+  });
 
   res.on("finish", () => {
-    const durationMs = Number(process.hrtime.bigint() - startTime) / 1_000_000;
-    logger.info({
-      message: "request_completed",
-      requestId,
+    const durationMs = req.startTime ? Date.now() - req.startTime : undefined;
+    logger.info("Request completed", {
+      requestId: req.requestId,
+      context: "response",
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
