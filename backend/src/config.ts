@@ -7,10 +7,15 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().positive().default(4000),
+    HOST: z.string().default("0.0.0.0"),
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
     JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+    JWT_EXPIRY: z.string().default("1h"),
     GEMINI_API_KEY: z.string().optional(),
+    GEMINI_TIMEOUT: z.coerce.number().int().positive().default(30_000),
+    GEMINI_MAX_RETRIES: z.coerce.number().int().positive().default(3),
     REDIS_URL: z.string().default("redis://localhost:6379"),
+    CORS_ORIGIN: z.string().default("*"),
     LOG_LEVEL: z
       .enum(["error", "warn", "info", "debug"])
       .default(process.env.NODE_ENV === "production" ? "info" : "debug"),
@@ -43,18 +48,25 @@ export const config = {
   app: {
     name: env.APP_NAME,
     port: env.PORT,
+    host: env.HOST,
   },
   auth: {
     jwtSecret: env.JWT_SECRET,
+    jwtExpiry: env.JWT_EXPIRY,
   },
   database: {
     url: env.DATABASE_URL,
   },
   gemini: {
     apiKey: env.GEMINI_API_KEY,
+    timeoutMs: env.GEMINI_TIMEOUT,
+    maxRetries: env.GEMINI_MAX_RETRIES,
   },
   redis: {
     url: env.REDIS_URL,
+  },
+  cors: {
+    origin: env.CORS_ORIGIN,
   },
   logging: {
     level: env.LOG_LEVEL,
