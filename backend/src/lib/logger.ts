@@ -1,62 +1,68 @@
 import fs from "fs";
 import path from "path";
+import winston from "winston";
+import { fileURLToPath } from "url";
 import { config } from "../config.js";
 
-type LogLevel = "error" | "warn" | "info" | "debug";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const logsDir = path.join(__dirname, "../../logs");
 
-interface LogPayload {
-  level: LogLevel;
-  message: string;
-  [key: string]: unknown;
-}
+fs.mkdirSync(logsDir, { recursive: true });
 
-const levels: LogLevel[] = ["error", "warn", "info", "debug"];
-
-const logsDir = path.resolve("logs");
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
-
-function shouldLog(level: LogLevel) {
-  return levels.indexOf(level) <= levels.indexOf(config.logging.level as LogLevel);
-}
-
-function writeToFile(filename: string, payload: LogPayload) {
-  fs.appendFileSync(filename, JSON.stringify(payload) + "\n");
-}
-
-function log(level: LogLevel, message: string | Record<string, unknown>, meta?: Record<string, unknown>) {
-  if (!shouldLog(level)) return;
-
-  const payload: LogPayload = {
-    level,
-    message: typeof message === "string" ? message : (message.message as string) ?? "",
-    timestamp: new Date().toISOString(),
-    ...(typeof message === "string" ? meta : message),
-  } as LogPayload;
-
-  const context = payload.context ? ` [${payload.context}]` : "";
-  const reqId = payload.requestId ? ` (${payload.requestId})` : "";
-  const { message: _msg, level: _lvl, ...restMeta } = payload as Record<string, unknown>;
-  const rest = Object.keys(restMeta).length ? ` ${JSON.stringify(restMeta)}` : "";
-  // Console output
-  // eslint-disable-next-line no-console
-  console.log(`${payload.timestamp} [${level}]${context}${reqId}: ${payload.message}${rest}`);
-
-  // File outputs
-  writeToFile(path.join(logsDir, "combined.log"), payload);
-  if (level === "error") {
-    writeToFile(path.join(logsDir, "error.log"), payload);
-  }
-}
-
-export const logger = {
-  log,
-  error: (message: string | Record<string, unknown>, meta?: Record<string, unknown>) =>
-    log("error", message, meta),
-  warn: (message: string | Record<string, unknown>, meta?: Record<string, unknown>) => log("warn", message, meta),
-  info: (message: string | Record<string, unknown>, meta?: Record<string, unknown>) => log("info", message, meta),
-  debug: (message: string | Record<string, unknown>, meta?: Record<string, unknown>) => log("debug", message, meta),
+const logLevels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  debug: 3,
 };
+
+const logColors = {
+  error: "red",
+  warn: "yellow",
+  info: "green",
+  debug: "blue",
+};
+
+winston.addColors(logColors);
+
+const logger = winston.createLogger({
+  levels: logLevels,
+  level: config.logging.level,
+  format: winston.format.combine(
+    winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    winston.format.errors({ stack: true }),
+    winston.format.splat(),
+    winston.format.json()
+  ),
+  defaultMeta: { service: "lean-rpg-backend" },
+  transports: [
+    new winston.transports.File({
+      filename: path.join(logsDir, "error.log"),
+      level: "error",
+      maxsize: 5_242_880,
+      maxFiles: 5,
+    }),
+    new winston.transports.File({
+      filename: path.join(logsDir, "combined.log"),
+      maxsize: 5_242_880,
+      maxFiles: 5,
+    }),
+  ],
+});
+
+if (config.env !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.printf((info: any) => {
+          const { timestamp, level, message, ...meta } = info;
+          const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : "";
+          return `${timestamp} [${level}]: ${message} ${metaStr}`;
+        })
+      ),
+    })
+  );
+}
 
 export default logger;

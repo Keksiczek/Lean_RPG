@@ -53,8 +53,6 @@ model Quest {
   difficulty  String        @default("easy")
   leanConcept String?
   isActive    Boolean       @default(true)
-  briefText   String?
-  leanConcept String?
   areaId      Int?
   area        Area?         @relation(fields: [areaId], references: [id])
   userQuests  UserQuest[]

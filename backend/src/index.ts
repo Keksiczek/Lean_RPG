@@ -8,8 +8,8 @@ import areaRoutes from "./routes/areas.js";
 import healthRouter from "./routes/health.js";
 import { verifyToken } from "./middleware/auth.js";
 import { config } from "./config.js";
-import { errorHandler, HttpError } from "./middleware/errorHandler.js";
 import { requestLogger } from "./middleware/logger.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 import logger from "./lib/logger.js";
 import { GeminiService } from "./services/GeminiService.js";
 import { registerGeminiProcessor } from "./queue/geminiJobs.js";
@@ -18,11 +18,12 @@ const app = express();
 const PORT = config.app.port;
 const HOST = config.app.host;
 
-app.use(cors({ origin: config.cors.origin }));
-app.use(express.json());
 if (config.logging.enableHttpLogs) {
   app.use(requestLogger);
 }
+
+app.use(cors({ origin: config.cors.origin }));
+app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/quests", verifyToken, questRoutes);
@@ -39,17 +40,37 @@ app.use(healthRouter);
 const geminiService = new GeminiService();
 registerGeminiProcessor(geminiService);
 
-app.use((req, _res, next) => {
-  next(new HttpError(`Route not found: ${req.originalUrl}`, 404));
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not found",
+    code: "NOT_FOUND",
+    path: req.path,
+  });
 });
 
 app.use(errorHandler);
 
 app.listen(PORT, HOST, () => {
   logger.info({
-    message: "server_started",
+    message: "Server started",
     port: PORT,
     host: HOST,
     environment: config.env,
+  });
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error({
+    message: "Uncaught exception",
+    error: err.message,
+    stack: err.stack,
+  });
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({
+    message: "Unhandled rejection",
+    error: String(reason),
   });
 });

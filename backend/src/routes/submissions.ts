@@ -1,8 +1,14 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
-import { asyncHandler } from "../middleware/asyncHandler.js";
-import { HttpError } from "../middleware/errorHandler.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
+import {
+  ForbiddenError,
+  HttpError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../middleware/errors.js";
 import { enqueueGeminiAnalysisJob } from "../queue/geminiJobs.js";
 
 const router = Router();
@@ -16,20 +22,23 @@ router.post(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError(
-        "Authentication required. Please log in to submit solutions.",
-        401
-      );
+      throw new UnauthorizedError("Please log in to submit solutions");
     }
 
     let parsedData;
     try {
       parsedData = submissionSchema.parse(req.body);
     } catch (validationErr) {
-      throw new HttpError(
-        "Invalid submission format. Content must be 1-5000 characters.",
-        400
-      );
+      if (validationErr instanceof z.ZodError) {
+        throw new ValidationError("Invalid submission format", {
+          issues: validationErr.issues.map((issue) => ({
+            path: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      throw validationErr;
     }
 
     const { questId, content } = parsedData;
@@ -37,10 +46,7 @@ router.post(
     const quest = await prisma.quest.findUnique({ where: { id: questId } });
 
     if (!quest) {
-      throw new HttpError(
-        `Quest #${questId} not found. It may have been archived.`,
-        404
-      );
+      throw new NotFoundError("Quest");
     }
 
     if (!quest.isActive) {
@@ -68,7 +74,8 @@ router.post(
     } catch (queueErr) {
       throw new HttpError(
         "Could not queue analysis. Please try again in a moment.",
-        503
+        503,
+        "QUEUE_UNAVAILABLE"
       );
     }
 
@@ -87,15 +94,14 @@ router.get(
   "/:id",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Authentication required", 401);
+      throw new UnauthorizedError("Please log in to view submissions");
     }
 
     const submissionId = Number(req.params.id);
     if (Number.isNaN(submissionId)) {
-      throw new HttpError(
-        "Invalid submission ID format. Must be a number.",
-        400
-      );
+      throw new ValidationError("Invalid submission ID format", {
+        submissionId: req.params.id,
+      });
     }
 
     const submission = await prisma.submission.findUnique({
@@ -109,17 +115,14 @@ router.get(
     });
 
     if (!submission) {
-      throw new HttpError(`Submission #${submissionId} not found.`, 404);
+      throw new NotFoundError("Submission");
     }
 
     const isOwner = submission.userId === req.user.userId;
     const isElevated = req.user.role === "admin" || req.user.role === "ci";
 
     if (!isOwner && !isElevated) {
-      throw new HttpError(
-        "You do not have permission to view this submission.",
-        403
-      );
+      throw new ForbiddenError("You do not have permission to view this submission.");
     }
 
     return res.json(submission);

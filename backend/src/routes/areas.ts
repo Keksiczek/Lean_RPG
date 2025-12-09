@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma.js";
-import { asyncHandler } from "../middleware/asyncHandler.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
+import { ForbiddenError, UnauthorizedError, ValidationError } from "../middleware/errors.js";
 
 const router = Router();
 
@@ -22,17 +23,17 @@ router.post(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+      throw new UnauthorizedError();
     }
 
     if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Forbidden" });
+      throw new ForbiddenError();
     }
 
     const { name, description } = req.body as { name?: string; description?: string };
 
     if (!name) {
-      return res.status(400).json({ message: "Name is required" });
+      throw new ValidationError("Name is required");
     }
 
     const area = await prisma.area.create({

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
-import { asyncHandler } from "../middleware/asyncHandler.js";
-import { HttpError } from "../middleware/errorHandler.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
+import { NotFoundError, UnauthorizedError } from "../middleware/errors.js";
 
 const router = Router();
 
@@ -40,12 +40,12 @@ router.get(
   "/me",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Unauthorized", 401);
+      throw new UnauthorizedError();
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
     if (!user) {
-      throw new HttpError("User not found", 404);
+      throw new NotFoundError("User");
     }
 
     return res.json(formatUser(user));
@@ -56,7 +56,7 @@ router.put(
   "/me",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Unauthorized", 401);
+      throw new UnauthorizedError();
     }
 
     const { name } = updateUserSchema.parse(req.body);

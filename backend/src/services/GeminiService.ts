@@ -2,7 +2,7 @@ import prisma from "../lib/prisma.js";
 import { analyzeSubmissionWithGemini } from "../lib/gemini.js";
 import { calculateXpGainForSubmission } from "../lib/xp.js";
 import logger from "../lib/logger.js";
-import { HttpError } from "../middleware/errorHandler.js";
+import { HttpError } from "../middleware/errors.js";
 
 export class GeminiService {
   async processSubmission(data: { submissionId: number; requestId?: string }) {
@@ -38,7 +38,7 @@ export class GeminiService {
         riskLevel: analysis.riskLevel,
       });
 
-      await prisma.$transaction(async (tx: typeof prisma) => {
+      await prisma.$transaction(async (tx) => {
         await tx.submission.update({
           where: { id: submission.id },
           data: {

@@ -5,8 +5,8 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { config } from "../config.js";
-import { asyncHandler } from "../middleware/asyncHandler.js";
-import { HttpError } from "../middleware/errorHandler.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
+import { HttpError, NotFoundError, UnauthorizedError } from "../middleware/errors.js";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = Router();
@@ -62,7 +62,7 @@ router.post(
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      throw new HttpError("User already exists", 409);
+      throw new HttpError("User already exists", 409, "USER_EXISTS");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -95,12 +95,12 @@ router.post(
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new HttpError("Invalid credentials", 401);
+      throw new HttpError("Invalid credentials", 401, "INVALID_CREDENTIALS");
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      throw new HttpError("Invalid credentials", 401);
+      throw new HttpError("Invalid credentials", 401, "INVALID_CREDENTIALS");
     }
 
     const token = generateToken({ userId: user.id, role: user.role });
@@ -117,12 +117,12 @@ router.get(
   verifyToken,
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Unauthorized", 401);
+      throw new UnauthorizedError();
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
     if (!user) {
-      throw new HttpError("User not found", 404);
+      throw new NotFoundError("User");
     }
 
     return res.json({ user: toUserResponse(user) });
