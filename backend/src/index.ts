@@ -29,6 +29,11 @@ app.use("/quests", verifyToken, questRoutes);
 app.use("/submissions", verifyToken, submissionRoutes);
 app.use("/users", verifyToken, userRoutes);
 app.use("/areas", verifyToken, areaRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/quests", verifyToken, questRoutes);
+app.use("/api/submissions", verifyToken, submissionRoutes);
+app.use("/api/users", verifyToken, userRoutes);
+app.use("/api/areas", verifyToken, areaRoutes);
 app.use(healthRouter);
 
 const geminiService = new GeminiService();

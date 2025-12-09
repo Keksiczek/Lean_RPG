@@ -10,7 +10,8 @@ export class GeminiService {
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
-        userQuest: { include: { quest: true } },
+        quest: true,
+        userQuest: true,
         workstation: { include: { area: { include: { knowledgePacks: true } } } },
       },
     });
@@ -19,8 +20,9 @@ export class GeminiService {
       throw new HttpError("Submission not found", 404);
     }
 
-    const areaContext =
-      submission.workstation.area?.knowledgePacks?.[0]?.content ?? null;
+    const areaContext = submission.workstation
+      ? submission.workstation.area?.knowledgePacks?.[0]?.content ?? null
+      : null;
 
     try {
       const analysis = await analyzeSubmissionWithGemini({
@@ -31,7 +33,7 @@ export class GeminiService {
       });
 
       const xpGain = calculateXpGainForSubmission({
-        baseXp: submission.userQuest.quest.baseXp,
+        baseXp: submission.quest.baseXp,
         score5s: analysis.score5s,
         riskLevel: analysis.riskLevel,
       });
@@ -44,43 +46,50 @@ export class GeminiService {
             aiScore5s: JSON.stringify(analysis.score5s),
             aiRiskLevel: analysis.riskLevel,
             xpGain,
-            status: "completed",
+            status: "evaluated",
           },
         });
 
-        await tx.userQuest.update({
-          where: { id: submission.userQuestId },
-          data: { status: "evaluated" },
-        });
+        if (submission.userQuest) {
+          await tx.userQuest.update({
+            where: { id: submission.userQuest.id },
+            data: { status: "evaluated" },
+          });
+        }
 
         await tx.xpLog.create({
           data: {
-            userId: submission.userQuest.userId,
+            userId: submission.userId,
             source: "submission",
             xpChange: xpGain,
-            note: `Quest ${submission.userQuest.quest.title} submission evaluated`,
+            note: `Quest ${submission.quest.title} submission evaluated`,
           },
         });
 
         await tx.user.update({
-          where: { id: submission.userQuest.userId },
+          where: { id: submission.userId },
           data: { totalXp: { increment: xpGain } },
         });
       });
     } catch (error) {
       logger.error({
-        message: "gemini_job_processing_failed",
+        message: "Gemini analysis failed",
         submissionId,
         requestId,
-        error,
+        error: error instanceof Error ? error.message : String(error),
       });
+
+      const fallbackFeedback =
+        "AI analýza není momentálně dostupná. " +
+        "Vaše řešení bylo uloženo a bude zpracováno později. " +
+        "Pokud chyba přetrvává, kontaktujte podporu.";
 
       await prisma.submission.update({
         where: { id: submission.id },
         data: {
-          status: "analysis_failed",
-          aiFeedback:
-            "AI analýza není aktuálně dostupná. Prosím zkuste odevzdání později.",
+          status: "failed",
+          aiFeedback: fallbackFeedback,
+          aiRiskLevel: "error",
         },
       });
     }

@@ -1,3 +1,21 @@
+## Phase 2B: Quest Submission Flow ✅ MERGED
+
+- **PR #14**: Add quest detail view and submission flow (MERGED)
+- **PR #15** (this branch): Complete submission + Gemini integration
+- **Status**:
+  - [x] Database migrations complete
+  - [x] Gemini job queue re-integrated
+  - [x] XP reward pipeline
+  - [x] Frontend submission status tracking
+  - [x] Integration tests
+  - [x] Documentation
+
+### Next: Phase 2A (Backend Production)
+- Winston logging
+- Gemini resilience (retry, circuit breaker)
+- Health check endpoint
+
+---
 # 🎯 CODEX STATUS ANALYSIS – 2025-12-09
 
 ## ✅ FASE 1 COMPLETION STATUS

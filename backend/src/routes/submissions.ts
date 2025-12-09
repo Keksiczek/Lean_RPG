@@ -3,67 +3,82 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import {
-  enqueueGeminiAnalysisJob,
-  getGeminiQueue,
-} from "../queue/geminiJobs.js";
+import { enqueueGeminiAnalysisJob } from "../queue/geminiJobs.js";
 
 const router = Router();
 
 const submissionSchema = z.object({
-  userQuestId: z.coerce.number().int(),
-  workstationId: z.coerce.number().int(),
-  textInput: z.string().max(2000).optional().nullable(),
-  imageUrl: z.string().url().max(2000).optional().nullable(),
+  questId: z.coerce.number().int(),
+  content: z.string().min(1).max(5000),
 });
 
 router.post(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Unauthorized", 401);
+      throw new HttpError(
+        "Authentication required. Please log in to submit solutions.",
+        401
+      );
     }
 
-    const { userQuestId, workstationId, textInput = null, imageUrl = null } =
-      submissionSchema.parse(req.body);
-
-    const userQuest = await prisma.userQuest.findUnique({
-      where: { id: userQuestId },
-      include: { quest: true },
-    });
-    if (!userQuest || userQuest.userId !== req.user.userId) {
-      throw new HttpError("Not allowed to submit for this quest", 403);
+    let parsedData;
+    try {
+      parsedData = submissionSchema.parse(req.body);
+    } catch (validationErr) {
+      throw new HttpError(
+        "Invalid submission format. Content must be 1-5000 characters.",
+        400
+      );
     }
 
-    const workstation = await prisma.workstation.findUnique({
-      where: { id: workstationId },
-      include: { area: { include: { knowledgePacks: true } } },
-    });
+    const { questId, content } = parsedData;
 
-    if (!workstation) {
-      throw new HttpError("Workstation not found", 404);
+    const quest = await prisma.quest.findUnique({ where: { id: questId } });
+
+    if (!quest) {
+      throw new HttpError(
+        `Quest #${questId} not found. It may have been archived.`,
+        404
+      );
+    }
+
+    if (!quest.isActive) {
+      throw new HttpError(
+        "This quest is no longer active. Check back later for new challenges!",
+        410
+      );
     }
 
     const submission = await prisma.submission.create({
       data: {
-        userQuestId,
-        workstationId,
-        textInput,
-        imageUrl,
+        questId,
+        content,
+        userId: req.user.userId,
         status: "pending_analysis",
       },
     });
 
-    const job = await enqueueGeminiAnalysisJob({
-      submissionId: submission.id,
-      requestId: req.requestId,
-    });
+    let job;
+    try {
+      job = await enqueueGeminiAnalysisJob({
+        submissionId: submission.id,
+        requestId: req.requestId,
+      });
+    } catch (queueErr) {
+      throw new HttpError(
+        "Could not queue analysis. Please try again in a moment.",
+        503
+      );
+    }
 
     return res.status(202).json({
-      ...submission,
-      status: submission.status,
+      success: true,
+      submissionId: submission.id,
       jobId: job.id,
-      pollUrl: `/submissions/${submission.id}`,
+      status: submission.status,
+      pollUrl: `/api/submissions/${submission.id}`,
+      message: "Submission received. Analysis will begin shortly.",
     });
   })
 );
@@ -72,60 +87,42 @@ router.get(
   "/:id",
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new HttpError("Unauthorized", 401);
+      throw new HttpError("Authentication required", 401);
     }
 
     const submissionId = Number(req.params.id);
     if (Number.isNaN(submissionId)) {
-      throw new HttpError("Invalid submission id", 400);
+      throw new HttpError(
+        "Invalid submission ID format. Must be a number.",
+        400
+      );
     }
 
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
+        quest: true,
+        user: true,
         userQuest: { include: { quest: true, user: true } },
         workstation: { include: { area: true } },
       },
     });
 
     if (!submission) {
-      throw new HttpError("Submission not found", 404);
+      throw new HttpError(`Submission #${submissionId} not found.`, 404);
     }
 
-    const isOwner = submission.userQuest.userId === req.user.userId;
+    const isOwner = submission.userId === req.user.userId;
     const isElevated = req.user.role === "admin" || req.user.role === "ci";
 
     if (!isOwner && !isElevated) {
-      throw new HttpError("Forbidden", 403);
+      throw new HttpError(
+        "You do not have permission to view this submission.",
+        403
+      );
     }
 
-    let xpGain = submission.xpGain ?? null;
-
-    if (xpGain === null) {
-      const relatedLog = await prisma.xpLog.findFirst({
-        where: {
-          userId: submission.userQuest.userId,
-          source: "submission",
-          createdAt: submission.createdAt,
-        },
-      });
-      xpGain = relatedLog?.xpChange ?? null;
-    }
-
-    if (submission.status === "pending_analysis") {
-      const queuePosition = await getGeminiQueue().getWaitingCount();
-      return res.json({
-        ...submission,
-        xpGain,
-        status: submission.status,
-        queuePosition,
-      });
-    }
-
-    return res.json({
-      ...submission,
-      xpGain,
-    });
+    return res.json(submission);
   })
 );
 
