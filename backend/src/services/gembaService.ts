@@ -994,6 +994,147 @@ const gembaProblems: GembaProblem[] = [
   },
 ];
 
+const leaderboardEntries: LeaderboardEntry[] = [
+  {
+    userId: 1,
+    name: "Sarah Johnson",
+    role: "employee",
+    level: 6,
+    xp: 1840,
+    team: "Assembly",
+    badges: 5,
+    ideasApproved: 2,
+  },
+  {
+    userId: 2,
+    name: "Juan Rodriguez",
+    role: "employee",
+    level: 5,
+    xp: 1620,
+    team: "Injection",
+    badges: 4,
+    ideasApproved: 1,
+  },
+  {
+    userId: 3,
+    name: "Emily Chen",
+    role: "employee",
+    level: 5,
+    xp: 1535,
+    team: "Assembly",
+    badges: 4,
+    ideasApproved: 3,
+  },
+  {
+    userId: 4,
+    name: "Marcus Chen",
+    role: "specialist",
+    level: 7,
+    xp: 2100,
+    team: "CI Specialists",
+    badges: 6,
+    ideasApproved: 8,
+  },
+  {
+    userId: 5,
+    name: "Viktor Müller",
+    role: "specialist",
+    level: 8,
+    xp: 2450,
+    team: "CI Specialists",
+    badges: 7,
+    ideasApproved: 10,
+  },
+  {
+    userId: 6,
+    name: "Grace Kim",
+    role: "employee",
+    level: 4,
+    xp: 980,
+    team: "Painting",
+    badges: 3,
+    ideasApproved: 1,
+  },
+];
+
+const teamStandings = [
+  { team: "Assembly", score: 4820, members: 3 },
+  { team: "Injection", score: 3610, members: 2 },
+  { team: "Painting", score: 2440, members: 2 },
+  { team: "Warehouse", score: 1870, members: 2 },
+  { team: "CI Specialists", score: 4550, members: 2 },
+];
+
+const dailyChallenges: DailyChallenge[] = [
+  {
+    id: 1,
+    title: "Solve 3 Muda problems",
+    description: "Hunt for waiting time, rework, or overproduction issues today.",
+    rewardXp: 50,
+    rewardPoints: 20,
+    conceptFocus: "Muda",
+  },
+  {
+    id: 2,
+    title: "Submit a Kaizen idea",
+    description: "Share one improvement you noticed during your shift.",
+    rewardXp: 100,
+    rewardPoints: 50,
+    conceptFocus: "Kaizen",
+  },
+];
+
+const availableBadges: BadgeSummary[] = [
+  {
+    id: 1,
+    name: "Muda Hunter",
+    description: "Solve 5 Muda problems",
+    icon: "🔴",
+    requirement: "5 Muda quests completed",
+    xpReward: 100,
+    pointsReward: 20,
+  },
+  {
+    id: 2,
+    name: "5S Specialist",
+    description: "Complete all 5S challenges",
+    icon: "⭐",
+    requirement: "Finish 3 workplace organization quests",
+    xpReward: 200,
+    pointsReward: 40,
+  },
+  {
+    id: 3,
+    name: "Kaizen Champion",
+    description: "Submit 3 implemented ideas",
+    icon: "🏆",
+    requirement: "Ideas approved by CI team",
+    xpReward: 300,
+    pointsReward: 75,
+  },
+  {
+    id: 4,
+    name: "Gemba Explorer",
+    description: "Visit three areas in one week",
+    icon: "🗺️",
+    requirement: "Explore Injection, Assembly, and Painting",
+    xpReward: 80,
+    pointsReward: 15,
+  },
+];
+
+const earnedBadges = new Map<number, BadgeSummary[]>([
+  [
+    1,
+    [
+      { ...availableBadges[0], earnedAt: new Date() },
+      { ...availableBadges[3], earnedAt: new Date() },
+    ],
+  ],
+]);
+
+const ideaSubmissions = new Map<number, IdeaSubmission[]>();
+
 const questStates = new Map<string, QuestState>();
 
 function questKey(userId: number, questId: number) {
@@ -1177,4 +1318,42 @@ export function getNpcDialogWithProblem(npcId: number) {
     ...npc,
     problems,
   };
+}
+
+export function getLeaderboardSummary(): LeaderboardSummary {
+  const global = [...leaderboardEntries].sort((a, b) => b.xp - a.xp).slice(0, 10);
+  const teams = [...teamStandings].sort((a, b) => b.score - a.score);
+  return { global, teams };
+}
+
+export function getDailyChallenge(): DailyChallenge {
+  return dailyChallenges[0];
+}
+
+export function getBadgeProgress(userId: number) {
+  const earned = earnedBadges.get(userId) ?? [];
+  return {
+    available: availableBadges,
+    earned,
+  };
+}
+
+let ideaIdCounter = 1;
+
+export function listIdeasForUser(userId: number) {
+  return ideaSubmissions.get(userId) ?? [];
+}
+
+export function submitIdea(userId: number, payload: IdeaPayload): IdeaSubmission {
+  const existing = ideaSubmissions.get(userId) ?? [];
+  const submission: IdeaSubmission = {
+    ...payload,
+    id: ideaIdCounter++,
+    userId,
+    status: "submitted",
+    submittedAt: new Date(),
+  };
+
+  ideaSubmissions.set(userId, [submission, ...existing]);
+  return submission;
 }
