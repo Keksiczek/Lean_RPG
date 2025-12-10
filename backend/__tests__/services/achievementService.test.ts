@@ -38,6 +38,7 @@ describe("AchievementService", () => {
       const user = createTestUser();
 
       await achievementService.updateAchievementProgress(user.id, "audits_completed", 3);
+      await new Promise((resolve) => setImmediate(resolve));
 
       const userAchievement = prismaState.userAchievements.get(`${user.id}-1`);
       expect(userAchievement?.progress).toBe(60);
@@ -47,6 +48,7 @@ describe("AchievementService", () => {
       const user = createTestUser();
 
       await achievementService.updateAchievementProgress(user.id, "audits_completed", 5);
+      await new Promise((resolve) => setImmediate(resolve));
 
       const userAchievement = prismaState.userAchievements.get(`${user.id}-1`);
       expect(userAchievement?.completedAt).toBeTruthy();
@@ -59,6 +61,7 @@ describe("AchievementService", () => {
       const beforeXp = progression?.totalXp ?? 0;
 
       await achievementService.updateAchievementProgress(user.id, "audits_completed", 5);
+      await new Promise((resolve) => setImmediate(resolve));
 
       const afterXp = prismaState.progressionRecords.get(user.id)?.totalXp ?? 0;
       expect(afterXp).toBeGreaterThan(beforeXp + 90);
@@ -68,6 +71,7 @@ describe("AchievementService", () => {
       const user = createTestUser();
 
       await achievementService.updateAchievementProgress(user.id, "audits_completed", 5);
+      await new Promise((resolve) => setImmediate(resolve));
 
       const badgeKey = `${user.id}-99`;
       expect(prismaState.userBadges.has(badgeKey)).toBe(true);
@@ -77,7 +81,9 @@ describe("AchievementService", () => {
       const user = createTestUser();
 
       await achievementService.updateAchievementProgress(user.id, "audits_completed", 5);
+      await new Promise((resolve) => setImmediate(resolve));
       const completed = await achievementService.updateAchievementProgress(user.id, "audits_completed", 10);
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(completed.length).toBe(0);
     });
