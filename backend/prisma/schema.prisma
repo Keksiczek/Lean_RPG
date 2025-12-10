@@ -22,6 +22,8 @@ model User {
   userSkills UserSkill[]
   audits     Audit[]
   submissions Submission[]
+  achievements Achievement[]
+  leaderboardHistory LeaderboardHistory[]
 }
 
 model Area {
@@ -183,4 +185,27 @@ model AuditResult {
   score   Int
   audit   Audit     @relation(fields: [auditId], references: [id])
   item    AuditItem @relation(fields: [itemId], references: [id])
+}
+
+model Achievement {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  name       String
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model LeaderboardHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  totalXp   Int
+  level     Int
+  rank      Int
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, timestamp])
 }
