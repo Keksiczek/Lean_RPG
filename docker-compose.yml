@@ -1,0 +1,89 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: lean_rpg_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-lean_rpg_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lean_rpg_password}
+      POSTGRES_DB: ${DB_NAME:-lean_rpg_dev}
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lean_rpg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-lean_rpg_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: lean_rpg_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lean_rpg_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lean_rpg_backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      HOST: 0.0.0.0
+      APP_NAME: "Lean RPG Backend"
+      DATABASE_URL: postgresql://${DB_USER:-lean_rpg_user}:${DB_PASSWORD:-lean_rpg_password}@postgres:5432/${DB_NAME:-lean_rpg_dev}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_EXPIRY: ${JWT_EXPIRY:-1h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      ENABLE_HTTP_LOGS: ${ENABLE_HTTP_LOGS:-true}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_TIMEOUT: ${GEMINI_TIMEOUT:-30000}
+      GEMINI_MAX_RETRIES: ${GEMINI_MAX_RETRIES:-2}
+      CIRCUIT_BREAKER_FAILURE_THRESHOLD: ${CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}
+      CIRCUIT_BREAKER_RESET_TIMEOUT: ${CIRCUIT_BREAKER_RESET_TIMEOUT:-60000}
+      BULL_QUEUE_MAX_RETRIES: ${BULL_QUEUE_MAX_RETRIES:-3}
+      BULL_QUEUE_RETRY_DELAY: ${BULL_QUEUE_RETRY_DELAY:-2000}
+      BULL_QUEUE_JOB_TIMEOUT: ${BULL_QUEUE_JOB_TIMEOUT:-120000}
+      BULL_QUEUE_MAX_CONCURRENCY: ${BULL_QUEUE_MAX_CONCURRENCY:-5}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lean_rpg_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  lean_rpg_network:
+    driver: bridge
