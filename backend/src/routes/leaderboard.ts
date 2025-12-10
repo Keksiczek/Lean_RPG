@@ -4,7 +4,11 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { getRedis } from "../lib/redis.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
-import { NotFoundError, ValidationError } from "../middleware/errors.js";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../middleware/errors.js";
 import { LeaderboardEntry, LeaderboardResponse, PlayerStats } from "../types/index.js";
 
 const router = Router();
@@ -77,7 +81,16 @@ router.get(
 
     const redis = getRedis();
     const cacheKey = `leaderboard:${timeframe}:${page}:${limit}:${search.toLowerCase()}`;
-    const cached = await redis.get(cacheKey);
+    let cached: string | null = null;
+
+    try {
+      cached = await redis.get(cacheKey);
+    } catch (error) {
+      console.warn(
+        "Redis cache miss, falling back to DB:",
+        error instanceof Error ? error.message : error
+      );
+    }
 
     if (cached) {
       return res.json(JSON.parse(cached) as LeaderboardResponse);
@@ -157,7 +170,14 @@ router.get(
       totalPages: Math.max(1, Math.ceil(total / limit)),
     };
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 300);
+    try {
+      await redis.set(cacheKey, JSON.stringify(response), "EX", 300);
+    } catch (error) {
+      console.warn(
+        "Failed to cache result:",
+        error instanceof Error ? error.message : error
+      );
+    }
 
     return res.json(response);
   })
@@ -214,7 +234,11 @@ router.get(
         prisma.$queryRaw<{ leanConcept: string; score: number }[]>`
           SELECT q."leanConcept",
                  CASE
-                   WHEN COUNT(*) > 0 THEN ROUND((SUM(COALESCE(s."xpGain", 0)) * 100.0 / 5000))::int
+                   WHEN COUNT(*) > 0 THEN
+                     CASE
+                       WHEN ROUND((SUM(COALESCE(s."xpGain", 0)) * 100.0 / 5000)) > 100 THEN 100
+                       ELSE ROUND((SUM(COALESCE(s."xpGain", 0)) * 100.0 / 5000))::int
+                     END
                    ELSE 0
                  END AS score
           FROM "Submission" s
@@ -285,6 +309,52 @@ router.get(
     };
 
     return res.json(stats);
+  })
+);
+
+async function trackLeaderboardSnapshot() {
+  const topPlayers = await prisma.$queryRaw<
+    { id: number; totalXp: number; level: number; rank: number }[]
+  >`
+    SELECT
+      u."id",
+      u."totalXp",
+      u."level",
+      ROW_NUMBER() OVER (ORDER BY u."totalXp" DESC, u."id" ASC) AS rank
+    FROM "User" u
+    LIMIT 100
+  `;
+
+  if (topPlayers.length === 0) {
+    return 0;
+  }
+
+  await prisma.leaderboardHistory.createMany({
+    data: topPlayers.map((player) => ({
+      userId: Number(player.id),
+      totalXp: Number(player.totalXp),
+      level: Number(player.level),
+      rank: Number(player.rank),
+      timestamp: new Date(),
+    })),
+  });
+
+  return topPlayers.length;
+}
+
+router.post(
+  "/admin/leaderboard/snapshot",
+  asyncHandler(async (req: Request, res: Response) => {
+    if (req.user?.role !== "admin") {
+      throw new ForbiddenError("Admin access required");
+    }
+
+    const count = await trackLeaderboardSnapshot();
+
+    return res.json({
+      message: "Leaderboard snapshot recorded",
+      inserted: count,
+    });
   })
 );
 
