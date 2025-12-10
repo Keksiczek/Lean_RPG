@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { problemSolvingChallenges } from './problemSolvingChallenges.js';
 
 const prisma = new PrismaClient();
 
@@ -48,6 +49,48 @@ async function seedAreas() {
     map[area.name] = area.id;
     return map;
   }, {});
+}
+
+async function seedProblemSolvingChallenges(areasByName: Record<string, number>) {
+  for (const challenge of problemSolvingChallenges) {
+    const areaId = areasByName[challenge.areaName];
+
+    if (!areaId) {
+      console.warn(`Skipping challenge ${challenge.title}: area ${challenge.areaName} not found`);
+      continue;
+    }
+
+    await prisma.problemSolvingChallenge.upsert({
+      where: { id: challenge.id },
+      update: {
+        title: challenge.title,
+        description: challenge.description,
+        context: challenge.context,
+        areaId,
+        difficulty: challenge.difficulty,
+        baseXp: challenge.baseXp,
+        correctRootCauseId: challenge.correctRootCauseId,
+        correctCategories: challenge.correctCategories,
+        possibleCauses: challenge.possibleCauses,
+        correctSolution: challenge.correctSolution,
+        status: 'active',
+      },
+      create: {
+        id: challenge.id,
+        title: challenge.title,
+        description: challenge.description,
+        context: challenge.context,
+        areaId,
+        difficulty: challenge.difficulty,
+        baseXp: challenge.baseXp,
+        correctRootCauseId: challenge.correctRootCauseId,
+        correctCategories: challenge.correctCategories,
+        possibleCauses: challenge.possibleCauses,
+        correctSolution: challenge.correctSolution,
+        status: 'active',
+      },
+    });
+  }
 }
 
 async function seedAuditTemplates(areasByName: Record<string, number>) {
@@ -318,6 +361,7 @@ async function main() {
   await seedAuditTemplates(areasByName);
   await seedFiveSSettings(areasByName);
   await seedQuests();
+  await seedProblemSolvingChallenges(areasByName);
 }
 
 main()
