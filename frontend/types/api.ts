@@ -13,6 +13,28 @@ export interface User {
   updatedAt: string;
 }
 
+export interface LeaderboardEntry extends User {
+  rank?: number;
+  weeklyXp?: number;
+  monthlyXp?: number;
+  submissionsCount?: number;
+}
+
+export interface PlayerStats {
+  submissions: number;
+  completedQuests: number;
+  concepts: Record<string, number>;
+  xpTrend?: { date: string; xp: number }[];
+  achievements?: string[];
+  recentSubmissions?: {
+    id: number;
+    questTitle: string;
+    status: string;
+    xpGain?: number;
+    completedAt?: string;
+  }[];
+}
+
 export interface Quest {
   id: number;
   title: string;
