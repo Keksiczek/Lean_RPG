@@ -475,6 +475,102 @@ async function seedQuests() {
   await prisma.quest.createMany({ data: quests });
 }
 
+async function seedBadges() {
+  const badges = [
+    { code: "5S_SORTER", name: "Sorter", description: "Earn 50 XP in 5S.", unlockType: "xp", unlockCondition: { xpRequired: 50 }, xpReward: 15, icon: "🧹", tier: 1, rarity: "common" },
+    { code: "5S_ORGANIZER", name: "Organizer", description: "Earn 150 XP in 5S.", unlockType: "xp", unlockCondition: { xpRequired: 150 }, xpReward: 20, icon: "🧭", tier: 1, rarity: "common" },
+    { code: "5S_CHAMPION", name: "5S Champion", description: "Earn 500 XP in 5S.", unlockType: "xp", unlockCondition: { xpRequired: 500 }, xpReward: 50, icon: "🏅", tier: 2, rarity: "rare", titleUnlock: "5S Champion" },
+    { code: "5S_MASTER", name: "Workplace Master", description: "Earn 1000 XP in 5S.", unlockType: "xp", unlockCondition: { xpRequired: 1000 }, xpReward: 100, icon: "🏆", tier: 3, rarity: "epic", titleUnlock: "Workplace Master" },
+    { code: "ISHI_STARTER", name: "Why Master", description: "Complete 5 Ishikawa diagrams.", unlockType: "xp", unlockCondition: { xpRequired: 200 }, xpReward: 25, icon: "❓" },
+    { code: "ISHI_EXPERT", name: "Ishikawa Expert", description: "Complete 20 Ishikawa challenges.", unlockType: "xp", unlockCondition: { xpRequired: 800 }, xpReward: 60, icon: "🐟", tier: 2 },
+    { code: "ROOT_CAUSE", name: "Root Cause Finder", description: "Reach 80+ average in Ishikawa.", unlockType: "xp", unlockCondition: { xpRequired: 1000 }, xpReward: 80, icon: "🧠", tier: 3, rarity: "rare" },
+    { code: "CONSISTENT_AUDITOR", name: "Consistent Performer", description: "Complete 5 audits in a week.", unlockType: "streak", unlockCondition: { streakRequired: 5 }, xpReward: 40, icon: "📆" },
+    { code: "AUDIT_PERFECT", name: "Perfect 5S Audit", description: "Score perfect in a 5S audit.", unlockType: "xp", unlockCondition: { xpRequired: 250 }, xpReward: 50, icon: "⭐", rarity: "epic" },
+    { code: "TOP_10", name: "Top 10 Player", description: "Reach the top 10 leaderboard.", unlockType: "leaderboard", unlockCondition: { rankRequired: 10 }, xpReward: 100, icon: "🥇", rarity: "epic" },
+    { code: "WEEKLY_CHAMPION", name: "Weekly Champion", description: "Highest XP in a week.", unlockType: "leaderboard", unlockCondition: { rankRequired: 1 }, xpReward: 150, icon: "📈", rarity: "legendary" },
+    { code: "STREAK_MASTER", name: "Unstoppable", description: "Maintain a 10-day quest streak.", unlockType: "streak", unlockCondition: { streakRequired: 10 }, xpReward: 60, icon: "🔥", rarity: "rare" },
+    { code: "LEAN_MASTER", name: "Lean Master", description: "Reach Tier 3 and 2000+ XP.", unlockType: "xp", unlockCondition: { xpRequired: 2000 }, xpReward: 200, icon: "🎯", rarity: "legendary", tier: 3 },
+    { code: "SKILL_UNLOCKER", name: "Skill Explorer", description: "Unlock 5 skills.", unlockType: "xp", unlockCondition: { xpRequired: 300 }, xpReward: 25, icon: "🧩" },
+    { code: "SKILL_COLLECTOR", name: "Skill Collector", description: "Unlock 10 skills.", unlockType: "xp", unlockCondition: { xpRequired: 700 }, xpReward: 40, icon: "🎒", tier: 2 },
+    { code: "SKILL_MASTERY", name: "Skill Maestro", description: "Unlock 15 skills.", unlockType: "xp", unlockCondition: { xpRequired: 1200 }, xpReward: 80, icon: "🎻", tier: 3 },
+    { code: "TEAM_COACH", name: "Teaching Master", description: "Have 3 active players learn from you.", unlockType: "xp", unlockCondition: { xpRequired: 600 }, xpReward: 70, icon: "🧭", rarity: "rare" },
+    { code: "BADGE_COLLECTOR", name: "Badge Collector", description: "Unlock 10 badges.", unlockType: "xp", unlockCondition: { xpRequired: 900 }, xpReward: 90, icon: "📛", tier: 2 },
+    { code: "BADGE_LEGEND", name: "Badge Legend", description: "Unlock 15 badges.", unlockType: "xp", unlockCondition: { xpRequired: 1500 }, xpReward: 120, icon: "🏵️", tier: 3, rarity: "epic" },
+    { code: "TRENDING_STAR", name: "Trending Player", description: "Be among the fastest growing players.", unlockType: "leaderboard", unlockCondition: { rankRequired: 20 }, xpReward: 70, icon: "🚀", tier: 2 },
+    { code: "AUDIT_SPECIALIST", name: "Audit Specialist", description: "Complete 25 5S audits.", unlockType: "xp", unlockCondition: { xpRequired: 1100 }, xpReward: 90, icon: "📋", tier: 2 },
+  ];
+
+  const createdBadges = await Promise.all(
+    badges.map((badge) =>
+      prisma.badge.upsert({
+        where: { code: badge.code },
+        update: badge,
+        create: badge,
+      }),
+    ),
+  );
+
+  return createdBadges.reduce<Record<string, number>>((map, badge) => {
+    map[badge.code] = badge.id;
+    return map;
+  }, {});
+}
+
+async function seedAchievements(badgeMap: Record<string, number>) {
+  const achievements = [
+    { code: "FIRST_QUEST", name: "First Step", description: "Complete 1 quest.", type: "counter", targetValue: 1, trackingField: "quests_completed", xpReward: 50, difficulty: "easy", category: "general", badgeCode: "5S_SORTER" },
+    { code: "AUDITOR", name: "Auditor", description: "Complete 5 audits.", type: "counter", targetValue: 5, trackingField: "audits_completed", xpReward: 100, badgeCode: "CONSISTENT_AUDITOR", category: "5S" },
+    { code: "PROBLEM_SOLVER", name: "Problem Solver", description: "Complete 10 Ishikawa", type: "counter", targetValue: 10, trackingField: "ishikawa_completed", xpReward: 150, badgeCode: "ISHI_EXPERT", category: "problem_solving" },
+    { code: "STREAK_10", name: "Unstoppable", description: "Maintain a 10 day quest streak.", type: "streak", targetValue: 10, trackingField: "quest_streak", xpReward: 200, badgeCode: "STREAK_MASTER", category: "streaks" },
+    { code: "LEAN_TIER3", name: "Lean Master", description: "Unlock Tier 3 progression.", type: "milestone", targetValue: 3, trackingField: "tier_unlocked", xpReward: 500, badgeCode: "LEAN_MASTER", category: "general" },
+    { code: "TEACHING_MASTER", name: "Teaching Master", description: "Have 3 active players learn from you.", type: "counter", targetValue: 3, trackingField: "mentees_active", xpReward: 250, badgeCode: "TEAM_COACH", category: "leadership" },
+    { code: "SKILL_UNLOCK_5", name: "Skill Explorer", description: "Unlock 5 skills.", type: "counter", targetValue: 5, trackingField: "skills_unlocked", xpReward: 100, badgeCode: "SKILL_UNLOCKER", category: "skills" },
+    { code: "SKILL_UNLOCK_10", name: "Skill Collector", description: "Unlock 10 skills.", type: "counter", targetValue: 10, trackingField: "skills_unlocked", xpReward: 150, badgeCode: "SKILL_COLLECTOR", category: "skills" },
+    { code: "SKILL_UNLOCK_15", name: "Skill Maestro", description: "Unlock 15 skills.", type: "counter", targetValue: 15, trackingField: "skills_unlocked", xpReward: 200, badgeCode: "SKILL_MASTERY", category: "skills" },
+    { code: "BADGE_10", name: "Badge Collector", description: "Unlock 10 badges.", type: "counter", targetValue: 10, trackingField: "badges_unlocked", xpReward: 120, badgeCode: "BADGE_COLLECTOR", category: "badges" },
+    { code: "BADGE_15", name: "Badge Legend", description: "Unlock 15 badges.", type: "counter", targetValue: 15, trackingField: "badges_unlocked", xpReward: 180, badgeCode: "BADGE_LEGEND", category: "badges" },
+    { code: "AUDIT_25", name: "Audit Specialist", description: "Complete 25 5S audits.", type: "counter", targetValue: 25, trackingField: "audits_completed", xpReward: 220, badgeCode: "AUDIT_SPECIALIST", category: "5S" },
+    { code: "ISHI_20", name: "Ishikawa Expert", description: "Complete 20 Ishikawa challenges.", type: "counter", targetValue: 20, trackingField: "ishikawa_completed", xpReward: 240, badgeCode: "ISHI_EXPERT", category: "problem_solving" },
+    { code: "XP_2000", name: "XP Grinder", description: "Reach 2000 total XP.", type: "milestone", targetValue: 2000, trackingField: "xp_total", xpReward: 300, badgeCode: "LEAN_MASTER", category: "general" },
+    { code: "TRENDING", name: "Trending", description: "Appear in trending leaderboard.", type: "milestone", targetValue: 1, trackingField: "trending", xpReward: 120, badgeCode: "TRENDING_STAR", category: "leaderboard" },
+  ];
+
+  for (const achievement of achievements) {
+    const badgeId = achievement.badgeCode ? badgeMap[achievement.badgeCode] : undefined;
+
+    await prisma.achievement.upsert({
+      where: { code: achievement.code },
+      update: {
+        name: achievement.name,
+        description: achievement.description,
+        icon: achievement.icon,
+        type: achievement.type,
+        targetValue: achievement.targetValue,
+        trackingField: achievement.trackingField,
+        xpReward: achievement.xpReward,
+        badgeId,
+        difficulty: achievement.difficulty,
+        category: achievement.category,
+        active: true,
+      },
+      create: {
+        code: achievement.code,
+        name: achievement.name,
+        description: achievement.description,
+        icon: achievement.icon,
+        type: achievement.type,
+        targetValue: achievement.targetValue,
+        trackingField: achievement.trackingField,
+        xpReward: achievement.xpReward,
+        badgeId,
+        difficulty: achievement.difficulty,
+        category: achievement.category,
+        active: true,
+      },
+    });
+  }
+}
+
 async function main() {
   await seedSkills();
   const areasByName = await seedAreas();
@@ -483,6 +579,8 @@ async function main() {
   await seedQuests();
   await seedProblemSolvingChallenges(areasByName);
   await seedSkillTree();
+  const badgeMap = await seedBadges();
+  await seedAchievements(badgeMap);
   await seedProgressions();
 }
 
