@@ -9,6 +9,7 @@ export type User = {
   email: string;
   level?: number;
   xp?: number;
+  totalXp?: number;
 };
 
 type AuthContextValue = {
