@@ -22,6 +22,7 @@ import fiveSRouter from "./routes/fiveS.js";
 import problemSolvingRouter from "./routes/problemSolving.js";
 import skillRouter from "./routes/skills.js";
 import progressionRouter from "./routes/progression.js";
+import gamificationRouter from "./routes/gamification.js";
 
 const app = express();
 const PORT = config.app.port;
@@ -54,6 +55,7 @@ app.use("/api/5s", verifyToken, fiveSRouter);
 app.use("/api/problem-solving", verifyToken, problemSolvingRouter);
 app.use("/api/skills", verifyToken, skillRouter);
 app.use("/api/progression", verifyToken, progressionRouter);
+app.use("/api/gamification", verifyToken, gamificationRouter);
 
 app.use((req, res) => {
   res.status(404).json({

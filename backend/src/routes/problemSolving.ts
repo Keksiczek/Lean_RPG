@@ -12,6 +12,12 @@ import {
   submitAnalysis,
   updateAnalysis,
 } from "../services/problemSolvingService.js";
+import { progressionService } from "../services/progressionService.js";
+import { achievementService } from "../services/achievementService.js";
+import { badgeService } from "../services/badgeService.js";
+import { leaderboardStatsService } from "../services/leaderboardStatsService.js";
+import { GameCompletionResponse } from "../types/gamification.js";
+import prisma from "../lib/prisma.js";
 
 const router = Router();
 
@@ -80,7 +86,34 @@ router.post(
     const analysisId = Number(req.params.analysisId);
     const payload = updateSchema.parse(req.body);
     const analysis = await submitAnalysis(analysisId, req.user!.id, payload);
-    res.json(analysis);
+    const xpEarned = analysis.xpGain ?? Math.floor((analysis.totalScore ?? 0) / 2);
+
+    if (xpEarned > 0) {
+      await progressionService.addXp(req.user!.id, xpEarned);
+    }
+
+    const completedCount = await prisma.problemAnalysis.count({
+      where: { userId: req.user!.id, status: "evaluated" },
+    });
+
+    const achieved = await achievementService.updateAchievementProgress(
+      req.user!.id,
+      "ishikawa_completed",
+      completedCount,
+    );
+
+    const badges = await badgeService.checkAndUnlockBadges(req.user!.id);
+    await leaderboardStatsService.updateStats(req.user!.id);
+
+    const response: GameCompletionResponse<typeof analysis> = {
+      ...analysis,
+      xpEarned,
+      achievementsProgressed: achieved.length,
+      badgesUnlocked: badges.length,
+      badges,
+    };
+
+    res.json(response);
   })
 );
 
