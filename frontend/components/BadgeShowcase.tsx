@@ -51,7 +51,7 @@ export function BadgeShowcase() {
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold">Unlocked ({unlockedBadges.length})</h3>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
           {unlockedBadges.map((badge) => (
             <BadgeCard key={badge.id} badge={badge} unlocked />
           ))}
@@ -62,7 +62,7 @@ export function BadgeShowcase() {
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold">Locked ({lockedBadges.length})</h3>
         </div>
-        <div className="grid grid-cols-2 gap-4 opacity-70 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 opacity-70">
           {lockedBadges.map((badge) => (
             <BadgeCard key={badge.id} badge={badge} />
           ))}

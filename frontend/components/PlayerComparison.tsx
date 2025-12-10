@@ -39,7 +39,7 @@ export function PlayerComparison({ userId1, userId2 }: { userId1: number; userId
   if (!comparison) return <div>No comparison found</div>;
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="rounded-lg border border-slate-200 p-4 shadow-sm">
         <h3 className="text-lg font-semibold">{comparison.user1.name}</h3>
         <p className="text-sm text-slate-600">XP: {comparison.user1.skillProgression.totalXp}</p>
@@ -52,9 +52,10 @@ export function PlayerComparison({ userId1, userId2 }: { userId1: number; userId
         <p className="text-sm text-slate-600">Tier: {comparison.user2.skillProgression.currentTier}</p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 p-4 shadow-sm md:col-span-2">
+      <div className="rounded-lg border border-slate-200 p-4 shadow-sm sm:col-span-2">
         <p className="text-sm text-slate-700">
-          XP Difference: {comparison.xpDifference} ({comparison.xpDifference > 0 ? `${comparison.user1.name} ahead` : `${comparison.user2.name} ahead`})
+          XP Difference: {comparison.xpDifference} (
+          {comparison.xpDifference > 0 ? `${comparison.user1.name} ahead` : `${comparison.user2.name} ahead`})
         </p>
         <p className="text-sm text-slate-700">Common Skills: {comparison.skillsCommon}</p>
         <p className="text-sm text-slate-700">Rank Gap: {comparison.rankDifference}</p>

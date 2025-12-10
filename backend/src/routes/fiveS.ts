@@ -11,6 +11,11 @@ import {
   submitAudit,
 } from "../services/fiveSService.js";
 import { exportAuditReport, getLeaderboard, getSetting } from "../services/fiveSDataService.js";
+import { progressionService } from "../services/progressionService.js";
+import { achievementService } from "../services/achievementService.js";
+import { badgeService } from "../services/badgeService.js";
+import { leaderboardStatsService } from "../services/leaderboardStatsService.js";
+import prisma from "../lib/prisma.js";
 
 const router = Router();
 
@@ -109,8 +114,29 @@ router.post(
       parsed.data.problems,
       parsed.data.timeSpent
     );
+    const xpEarned = result.xpGain ?? Math.floor((result.totalScore ?? 0) / 2);
 
-    res.json(result);
+    if (xpEarned > 0) {
+      await progressionService.addXp(user.id, xpEarned);
+    }
+
+    const auditCount = await prisma.fiveSAudit.count({ where: { userId: user.id } });
+    const achieved = await achievementService.updateAchievementProgress(
+      user.id,
+      "audits_completed",
+      auditCount,
+    );
+
+    const badges = await badgeService.checkAndUnlockBadges(user.id);
+    await leaderboardStatsService.updateStats(user.id);
+
+    res.json({
+      ...result,
+      xpEarned,
+      achievementsProgressed: achieved.length,
+      badgesUnlocked: badges.length,
+      badges,
+    });
   })
 );
 

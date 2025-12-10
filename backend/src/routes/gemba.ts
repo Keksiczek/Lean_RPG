@@ -19,6 +19,10 @@ import {
   submitIdea,
 } from "../services/gembaService.js";
 import { ValidationError } from "../middleware/errors.js";
+import { progressionService } from "../services/progressionService.js";
+import { achievementService } from "../services/achievementService.js";
+import { badgeService } from "../services/badgeService.js";
+import { leaderboardStatsService } from "../services/leaderboardStatsService.js";
 
 const router = Router();
 
@@ -107,7 +111,28 @@ router.post(
     }
 
     const result = submitQuestAnswer(questId, user, parsed.data);
-    res.json(result);
+    const xpEarned = result.evaluation.xpReward ?? 0;
+
+    if (xpEarned > 0) {
+      await progressionService.addXp(user.id, xpEarned);
+    }
+
+    const completedWalks = summarizeQuestProgress(user.id).filter((entry) => entry.status === "completed").length;
+    await achievementService.updateAchievementProgress(
+      user.id,
+      "gemba_observations",
+      completedWalks,
+    );
+
+    const badges = await badgeService.checkAndUnlockBadges(user.id);
+    await leaderboardStatsService.updateStats(user.id);
+
+    res.json({
+      ...result,
+      xpEarned,
+      badgesUnlocked: badges.length,
+      badges,
+    });
   })
 );
 

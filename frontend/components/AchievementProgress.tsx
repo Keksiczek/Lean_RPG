@@ -37,9 +37,12 @@ export function AchievementProgress() {
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {achievements.map((achievement) => (
-        <div key={achievement.id} className="rounded-lg border border-slate-200 p-4 shadow-sm">
+        <div
+          key={achievement.id}
+          className="flex h-full flex-col rounded-lg border border-slate-200 p-4 shadow-sm"
+        >
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="font-semibold">{achievement.name}</h4>
@@ -47,14 +50,14 @@ export function AchievementProgress() {
             </div>
             <span className="text-sm text-slate-500">{achievement.userProgress.progress}%</span>
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded bg-slate-100">
+          <div className="mt-3 h-2 w-full overflow-hidden rounded bg-slate-100">
             <div
               className="h-2 bg-green-500"
               style={{ width: `${Math.min(achievement.userProgress.progress, 100)}%` }}
             />
           </div>
           {achievement.userProgress.completedAt && (
-            <p className="mt-2 text-sm text-green-600">Completed</p>
+            <p className="mt-3 text-sm text-green-600">Completed</p>
           )}
         </div>
       ))}

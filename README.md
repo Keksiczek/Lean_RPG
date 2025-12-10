@@ -28,6 +28,41 @@ From the `frontend/` directory:
 - `npm run dev` – start the Next.js dev server
 - `npm run lint` – lint frontend code
 
+## Gamification System
+
+Lean_RPG includes badges, achievements, and multiple leaderboard views to reward consistent play.
+
+### Features
+
+- **Badges**: 21+ badge types across rarity tiers, unlocked via XP thresholds, streaks, or leaderboard ranks. Many grant bonus XP when earned.
+- **Achievements**: 15 tracked milestones covering audits, Ishikawa sessions, streaks, and tier unlocks. Achievements can also award badges and XP.
+- **Leaderboards**: Global rankings by XP, skill-specific leaderboards, trending players (XP/day), and player-vs-player comparison data.
+
+### API Endpoints
+
+```
+# Badges
+GET /api/gamification/badges
+POST /api/gamification/badges/unlock
+
+# Achievements
+GET /api/gamification/achievements
+
+# Leaderboards
+GET /api/gamification/leaderboard/by-skill/:skillCode
+GET /api/gamification/leaderboard/trending
+GET /api/gamification/players/:id/compare/:otherId
+```
+
+### Mini-Game Integration
+
+After completing a 5S audit, Ishikawa analysis, or Gemba quest submission, the server automatically:
+
+1. Awards XP based on performance.
+2. Updates relevant achievement progress.
+3. Checks and unlocks any new badges.
+4. Refreshes leaderboard stats so rankings stay current.
+
 ## 🐳 Docker Setup (Development)
 
 ### Prerequisites
