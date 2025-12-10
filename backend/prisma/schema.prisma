@@ -27,6 +27,11 @@ model User {
   fiveSAudits FiveSAudit[]
   problemAnalyses ProblemAnalysis[]
   ishikawaHistory IshikawaHistory[]
+  userBadges       UserBadge[]
+  userAchievements UserAchievement[]
+  leaderboardStats LeaderboardStats?
+  comparisonsAsUser1 PlayerComparison[] @relation("Player1")
+  comparisonsAsUser2 PlayerComparison[] @relation("Player2")
 }
 
 model Area {
@@ -394,4 +399,121 @@ model FiveSProblem {
   severity    String
 
   createdAt   DateTime    @default(now())
+}
+
+model Badge {
+  id              Int         @id @default(autoincrement())
+  code            String      @unique
+  name            String
+  description     String
+  icon            String?
+  color           String?
+  unlockType      String
+  unlockCondition Json
+  xpReward        Int         @default(0)
+  skillBonusId    Int?
+  titleUnlock     String?
+  rarity          String      @default("common")
+  tier            Int         @default(1)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userBadges      UserBadge[]
+
+  @@index([unlockType])
+  @@index([rarity])
+}
+
+model UserBadge {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId     Int
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime @default(now())
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+model Achievement {
+  id               Int                @id @default(autoincrement())
+  code             String             @unique
+  name             String
+  description      String
+  icon             String?
+  type             String
+  targetValue      Int
+  trackingField    String
+  xpReward         Int                @default(0)
+  badgeId          Int?
+  badge            Badge?             @relation("AchievementBadge", fields: [badgeId], references: [id])
+  difficulty       String             @default("easy")
+  category         String             @default("general")
+  active           Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  userAchievements UserAchievement[]
+
+  @@index([category])
+  @@index([trackingField])
+}
+
+model UserAchievement {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId  Int
+  achievement    Achievement   @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  progress       Int           @default(0)
+  completedAt    DateTime?
+  notified       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([completedAt])
+}
+
+model LeaderboardStats {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  globalRank       Int?
+  globalRankChange Int      @default(0)
+  bestSkillRank    Int?
+  bestSkillCode    String?
+  totalAudits      Int      @default(0)
+  totalProblems    Int      @default(0)
+  questStreak      Int      @default(0)
+  maxStreak        Int      @default(0)
+  xpPerDay         Float    @default(0)
+  xpTrend          String   @default("stable")
+  lastUpdated      DateTime @default(now())
+
+  @@index([globalRank])
+  @@index([xpPerDay])
+}
+
+model PlayerComparison {
+  id              Int      @id @default(autoincrement())
+  userId1         Int
+  user1           User     @relation("Player1", fields: [userId1], references: [id], onDelete: Cascade)
+  userId2         Int
+  user2           User     @relation("Player2", fields: [userId2], references: [id], onDelete: Cascade)
+  xpDifference    Int
+  rankDifference  Int
+  skillsCommon    Int
+  skillsUser1Only Int
+  skillsUser2Only Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId1, userId2])
+  @@index([userId1])
+  @@index([userId2])
 }
