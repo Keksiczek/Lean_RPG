@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { ChevronLeft } from 'lucide-react';
 import SubmissionForm from '@/components/submissions/SubmissionForm';
 import SubmissionStatus, {
   type Submission as SubmissionResult,
@@ -39,7 +39,7 @@ export default function QuestDetailContent({ quest }: QuestDetailContentProps) {
     <div className="space-y-8">
       <div className="flex items-center gap-4">
         <Link href="/quests" className="p-2 hover:bg-slate-700 rounded-lg transition">
-          <ChevronLeftIcon className="w-6 h-6 text-slate-300" />
+          <ChevronLeft className="w-6 h-6 text-slate-300" />
         </Link>
         <div>
           <h1 className="text-4xl font-bold text-white">{quest.title}</h1>

@@ -2,7 +2,7 @@
 
 import type { ChangeEvent, FormEvent } from 'react';
 import { useRef, useState } from 'react';
-import { ArrowUpOnSquareIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { Upload, X } from 'lucide-react';
 import { uploadFile } from '@/lib/api/files';
 import { createSubmission } from '@/lib/api/submissions';
 
@@ -136,7 +136,7 @@ export default function SubmissionForm({ questId, onSubmissionCreated }: Submiss
             className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-slate-500 hover:bg-slate-800/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="text-center">
-              <ArrowUpOnSquareIcon className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+              <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <p className="text-slate-300 font-medium">Click to upload image</p>
               <p className="text-slate-400 text-sm mt-1">PNG, JPG, WebP up to 5MB</p>
             </div>
@@ -163,7 +163,7 @@ export default function SubmissionForm({ questId, onSubmissionCreated }: Submiss
               disabled={isLoading}
               className="absolute top-2 right-2 p-2 bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50"
             >
-              <XMarkIcon className="w-4 h-4 text-white" />
+              <X className="w-4 h-4 text-white" />
             </button>
           </div>
         )}
@@ -181,7 +181,7 @@ export default function SubmissionForm({ questId, onSubmissionCreated }: Submiss
           </>
         ) : (
           <>
-            <ArrowUpOnSquareIcon className="w-5 h-5" />
+            <Upload className="w-5 h-5" />
             Submit Solution
           </>
         )}

@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationCircleIcon,
-  SparklesIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/solid';
+import { AlertCircle, CheckCircle, Clock, Sparkles, X } from 'lucide-react';
 import { fetchSubmission } from '@/lib/api/submissions';
 import type { Submission } from '@/types/api';
 import type { SubmissionStatus as SubmissionStatusType } from '@/lib/api/submissions';
@@ -18,39 +12,41 @@ interface SubmissionStatusProps {
   onCancel?: () => void;
 }
 
-const STATUS_CONFIG: Record<SubmissionStatusType, { label: string; color: string; bg: string; Icon: typeof CheckCircleIcon }>
-  = {
-    pending_review: {
-      label: 'Pending Review',
-      color: 'text-slate-300',
-      bg: 'bg-slate-700/40',
-      Icon: ClockIcon,
-    },
-    queued: {
-      label: 'Queued for Analysis',
-      color: 'text-blue-300',
-      bg: 'bg-blue-800/30',
-      Icon: ClockIcon,
-    },
-    analyzing: {
-      label: 'Analyzing...',
-      color: 'text-purple-300',
-      bg: 'bg-purple-800/30',
-      Icon: SparklesIcon,
-    },
-    evaluated: {
-      label: 'Evaluation Complete',
-      color: 'text-green-300',
-      bg: 'bg-green-800/20',
-      Icon: CheckCircleIcon,
-    },
-    failed: {
-      label: 'Evaluation Failed',
-      color: 'text-red-300',
-      bg: 'bg-red-800/30',
-      Icon: ExclamationCircleIcon,
-    },
-  };
+const ICON_MAP: Record<SubmissionStatusType, typeof AlertCircle> = {
+  pending_review: Clock,
+  queued: Clock,
+  analyzing: Sparkles,
+  evaluated: CheckCircle,
+  failed: AlertCircle,
+};
+
+const STATUS_CONFIG: Record<SubmissionStatusType, { label: string; color: string; bg: string }> = {
+  pending_review: {
+    label: 'Pending Review',
+    color: 'text-slate-300',
+    bg: 'bg-slate-700/40',
+  },
+  queued: {
+    label: 'Queued for Analysis',
+    color: 'text-blue-300',
+    bg: 'bg-blue-800/30',
+  },
+  analyzing: {
+    label: 'Analyzing...',
+    color: 'text-purple-300',
+    bg: 'bg-purple-800/30',
+  },
+  evaluated: {
+    label: 'Evaluation Complete',
+    color: 'text-green-300',
+    bg: 'bg-green-800/20',
+  },
+  failed: {
+    label: 'Evaluation Failed',
+    color: 'text-red-300',
+    bg: 'bg-red-800/30',
+  },
+};
 
 export default function SubmissionStatus({ submissionId, onComplete, onCancel }: SubmissionStatusProps) {
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -117,7 +113,7 @@ export default function SubmissionStatus({ submissionId, onComplete, onCancel }:
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <SparklesIcon className="w-10 h-10 text-blue-400 animate-spin mx-auto" />
+        <Sparkles className="w-10 h-10 text-blue-400 animate-spin mx-auto" />
         <p className="text-slate-400 mt-3">Loading submission status...</p>
       </div>
     );
@@ -144,13 +140,13 @@ export default function SubmissionStatus({ submissionId, onComplete, onCancel }:
   if (!submission) return null;
 
   const config = STATUS_CONFIG[submission.status];
-  const Icon = config.Icon;
+  const IconComponent = ICON_MAP[submission.status];
 
   return (
     <div className="space-y-6">
       <div className={`p-6 border border-slate-600 rounded-lg ${config.bg}`}>
         <div className="flex items-center gap-3 mb-4">
-          <Icon className={`w-6 h-6 ${config.color}`} />
+          <IconComponent className={`w-6 h-6 ${config.color}`} />
           <div className="flex-1">
             <h3 className={`text-lg font-semibold ${config.color}`}>{config.label}</h3>
             <p className="text-slate-400 text-sm">Submission #{submission.id}</p>
@@ -161,7 +157,7 @@ export default function SubmissionStatus({ submissionId, onComplete, onCancel }:
               onClick={onCancel}
               className="flex items-center gap-2 px-3 py-2 text-sm text-red-200 bg-red-800/50 border border-red-600 rounded-lg hover:bg-red-800"
             >
-              <XMarkIcon className="w-4 h-4" /> Cancel submission
+              <X className="w-4 h-4" /> Cancel submission
             </button>
           )}
         </div>
