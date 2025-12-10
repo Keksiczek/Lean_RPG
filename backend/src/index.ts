@@ -17,6 +17,7 @@ import userRoutes from "./routes/users.js";
 import areaRoutes from "./routes/areas.js";
 import healthRouter from "./routes/health.js";
 import jobsRouter from "./routes/jobs.js";
+import leaderboardRouter from "./routes/leaderboard.js";
 
 const app = express();
 const PORT = config.app.port;
@@ -44,6 +45,7 @@ app.use("/api/submissions", verifyToken, submissionRoutes);
 app.use("/api/users", verifyToken, userRoutes);
 app.use("/api/areas", verifyToken, areaRoutes);
 app.use("/api/jobs", verifyToken, jobsRouter);
+app.use("/api", verifyToken, leaderboardRouter);
 
 app.use((req, res) => {
   res.status(404).json({
