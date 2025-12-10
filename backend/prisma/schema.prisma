@@ -20,6 +20,8 @@ model User {
   userQuests UserQuest[]
   xpLogs     XpLog[]
   userSkills UserSkill[]
+  playerSkills PlayerSkill[]
+  skillProgression SkillProgression?
   audits     Audit[]
   submissions Submission[]
   fiveSAudits FiveSAudit[]
@@ -201,6 +203,75 @@ model UserSkill {
   skill      Skill     @relation(fields: [skillId], references: [id])
 
   @@unique([userId, skillId])
+}
+
+model SkillTreeNode {
+  id                Int       @id @default(autoincrement())
+  name              String    @unique
+  description       String
+  category          String
+  tier              Int
+  requiresXp        Int
+  icon              String?
+  color             String?
+  requiresSkills    Int[]     @default([])
+  unlockType        String
+  unlockData        Json?
+  shortTip          String?
+  learningResources String[]  @default([])
+  xpBonus           Int       @default(0)
+  pointsBonus       Int       @default(0)
+  badgeUnlock       String?
+  active            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  unlockedBy        PlayerSkill[]
+
+  @@index([tier])
+  @@index([category])
+  @@index([active])
+}
+
+model PlayerSkill {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId       Int
+  skill         SkillTreeNode @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  level         Int           @default(1)
+  progress      Int           @default(0)
+  isUnlocked    Boolean       @default(false)
+  unlockedAt    DateTime?
+  isActive      Boolean       @default(false)
+  activatedAt   DateTime?
+  skillXp       Int           @default(0)
+  masteryLevel  String        @default("beginner")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@index([isUnlocked])
+}
+
+model SkillProgression {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXp             Int      @default(0)
+  currentTier         Int      @default(1)
+  unlockedSkillCount  Int      @default(0)
+  activeSkillCount    Int      @default(0)
+  lastLevelUp         DateTime?
+  tierUnlockedAt      Json?
+  currentGoal         String?
+  goalProgress        Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([currentTier])
+  @@index([totalXp])
 }
 
 model QuestOption {

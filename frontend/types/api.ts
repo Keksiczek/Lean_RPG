@@ -82,3 +82,56 @@ export interface UserQuest {
   quest?: Quest;
   user?: User;
 }
+
+export interface SkillTreeNode {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  tier: number;
+  requiresXp: number;
+  icon?: string | null;
+  color?: string | null;
+  requiresSkills: number[];
+  unlockType: string;
+  unlockData?: Record<string, unknown> | null;
+  shortTip?: string | null;
+  learningResources?: string[];
+  xpBonus: number;
+  pointsBonus: number;
+  badgeUnlock?: string | null;
+  active: boolean;
+}
+
+export interface PlayerSkill {
+  id: number;
+  userId: number;
+  skillId: number;
+  level: number;
+  progress: number;
+  isUnlocked: boolean;
+  unlockedAt?: string | null;
+  isActive: boolean;
+  activatedAt?: string | null;
+  skillXp: number;
+  masteryLevel: string;
+  skill?: SkillTreeNode;
+}
+
+export interface SkillProgression {
+  id: number;
+  userId: number;
+  totalXp: number;
+  currentTier: number;
+  unlockedSkillCount: number;
+  activeSkillCount: number;
+  lastLevelUp?: string | null;
+  tierUnlockedAt?: Record<string, unknown> | null;
+  currentGoal?: string | null;
+  goalProgress: number;
+  nextTier?: number;
+  xpProgress?: number;
+  xpToNextTier?: number;
+  tierProgress?: number;
+  unlockedSkillIds?: number[];
+}
