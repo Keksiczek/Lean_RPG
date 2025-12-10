@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ListChecks, Map } from 'lucide-react';
+import { Compass, LayoutDashboard, ListChecks, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserNav } from './user-nav';
 
 const items = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/quests', label: 'Úkoly', icon: ListChecks },
-  { href: '/areas', label: 'Lokace', icon: Map }
+  { href: '/areas', label: 'Lokace', icon: Map },
+  { href: '/gemba', label: 'Gemba Walk', icon: Compass }
 ];
 
 export function Sidebar() {
