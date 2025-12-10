@@ -75,6 +75,52 @@ export type QuestState = {
   analysisQuality?: number;
 };
 
+export type LeaderboardEntry = {
+  userId: number;
+  name: string;
+  role: 'employee' | 'specialist';
+  level: number;
+  xp: number;
+  team: string;
+  badges: number;
+  ideasApproved: number;
+};
+
+export type LeaderboardSummary = {
+  global: LeaderboardEntry[];
+  teams: { team: string; score: number; members: number }[];
+};
+
+export type DailyChallenge = {
+  id: number;
+  title: string;
+  description: string;
+  rewardXp: number;
+  rewardPoints: number;
+  conceptFocus: string;
+};
+
+export type BadgeSummary = {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  requirement: string;
+  xpReward: number;
+  pointsReward: number;
+  earnedAt?: string;
+};
+
+export type IdeaSubmission = {
+  id: number;
+  title: string;
+  problemContext: string;
+  proposedSolution: string;
+  impact: string;
+  status: string;
+  submittedAt: string;
+};
+
 export async function fetchAreas(): Promise<GembaAreaSummary[]> {
   const response = await fetch(`${API_BASE}/gemba/areas`, {
     headers: {
@@ -169,4 +215,92 @@ export async function submitQuest(
   }
 
   return response.json();
+}
+
+export async function fetchLeaderboard(): Promise<LeaderboardSummary> {
+  const response = await fetch(`${API_BASE}/gemba/leaderboard`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load leaderboard');
+  }
+
+  return response.json();
+}
+
+export async function fetchDailyChallenge(): Promise<DailyChallenge> {
+  const response = await fetch(`${API_BASE}/gemba/daily-challenge`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load daily challenge');
+  }
+
+  return response.json();
+}
+
+export async function fetchBadges(): Promise<{ available: BadgeSummary[]; earned: BadgeSummary[] }> {
+  const response = await fetch(`${API_BASE}/gemba/badges`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load badges');
+  }
+
+  return response.json();
+}
+
+export async function fetchIdeas(): Promise<IdeaSubmission[]> {
+  const response = await fetch(`${API_BASE}/gemba/ideas`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load ideas');
+  }
+
+  const data = await response.json();
+  return data.ideas;
+}
+
+export async function submitIdea(payload: {
+  title: string;
+  problemContext: string;
+  proposedSolution: string;
+  impact: string;
+}): Promise<IdeaSubmission> {
+  const response = await fetch(`${API_BASE}/gemba/ideas`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to submit idea');
+  }
+
+  const data = await response.json();
+  return data.idea;
 }
