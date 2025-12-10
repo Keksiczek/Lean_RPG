@@ -18,6 +18,7 @@ import areaRoutes from "./routes/areas.js";
 import healthRouter from "./routes/health.js";
 import jobsRouter from "./routes/jobs.js";
 import gembaRouter from "./routes/gemba.js";
+import fiveSRouter from "./routes/fiveS.js";
 
 const app = express();
 const PORT = config.app.port;
@@ -46,6 +47,7 @@ app.use("/api/users", verifyToken, userRoutes);
 app.use("/api/areas", verifyToken, areaRoutes);
 app.use("/api/jobs", verifyToken, jobsRouter);
 app.use("/api/gemba", verifyToken, gembaRouter);
+app.use("/api/5s", verifyToken, fiveSRouter);
 
 app.use((req, res) => {
   res.status(404).json({

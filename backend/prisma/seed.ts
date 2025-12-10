@@ -98,6 +98,167 @@ async function seedAuditTemplates(areasByName: Record<string, number>) {
   }
 }
 
+async function seedFiveSSettings(areasByName: Record<string, number>) {
+  const injectionId = areasByName["Injection Molding"];
+
+  if (!injectionId) return;
+
+  const checklist = {
+    name: "Injection Department 5S Checklist",
+    areaId: injectionId,
+    timeLimit: 300,
+    sortCriteria: [
+      {
+        id: 1,
+        question: "Vidíš zbytečné věci na stanicích?",
+        hint: "Staré nářadí, obaly, papír, věci z jiných oddělení",
+        points: 4,
+      },
+      {
+        id: 2,
+        question: "Nejsou nástroje z jiných stanic?",
+        hint: "Může to vytvořit zmatek a zpomalení",
+        points: 4,
+      },
+      {
+        id: 3,
+        question: "Je všechno na správném místě?",
+        hint: "Vči standardu pracovního místa",
+        points: 4,
+      },
+      {
+        id: 4,
+        question: "Vidíš praskliny nebo poškozená zařízení?",
+        hint: "Bezpečnostní riziko",
+        points: 4,
+      },
+      {
+        id: 5,
+        question: "Jsou kontrolní body jasně viditelné?",
+        hint: "Čtverečky na podlaze, značky na nářadí",
+        points: 4,
+      },
+    ],
+    orderCriteria: [
+      {
+        id: 6,
+        question: "Je vše na svém místě (location markers)?",
+        hint: "Nářadí má svou polohu",
+        points: 4,
+      },
+      {
+        id: 7,
+        question: "Jsou nářadí a materiály označeny?",
+        hint: "Barevné štítky, shadow boards",
+        points: 4,
+      },
+      {
+        id: 8,
+        question: "Jsou cesty a průchody volné?",
+        hint: "Bez překážek a nepořádku",
+        points: 4,
+      },
+      {
+        id: 9,
+        question: "Je jasné, kam patří odpady?",
+        hint: "Označené koše a boxy",
+        points: 4,
+      },
+    ],
+    shineCriteria: [
+      {
+        id: 10,
+        question: "Je podlaha čistá?",
+        hint: "Bez oleje, úniků a prachu",
+        points: 4,
+      },
+      {
+        id: 11,
+        question: "Jsou stroje bez nečistot?",
+        hint: "Čisté povrchy a senzory",
+        points: 4,
+      },
+      {
+        id: 12,
+        question: "Je pracovní plocha uklizená?",
+        hint: "Bez zbytků materiálu",
+        points: 4,
+      },
+      {
+        id: 13,
+        question: "Jsou úklidové nástroje dostupné?",
+        hint: "Koště, utěrky, čistící prostředky",
+        points: 4,
+      },
+    ],
+    standardizeCriteria: [
+      {
+        id: 14,
+        question: "Jsou vidět 5S pravidla (plakáty)?",
+        hint: "Instrukce a checklisty",
+        points: 4,
+      },
+      {
+        id: 15,
+        question: "Je odpovědnost jasně přiřazena?",
+        hint: "Tabulky směn, ownership",
+        points: 4,
+      },
+      {
+        id: 16,
+        question: "Jsou standardy aktuální?",
+        hint: "Poslední revize a podpis",
+        points: 4,
+      },
+      {
+        id: 17,
+        question: "Je kontrolní kolo pravidelné?",
+        hint: "Denní 5S checklist",
+        points: 4,
+      },
+    ],
+    sustainCriteria: [
+      {
+        id: 18,
+        question: "Drží se lidi pravidel?",
+        hint: "Pozorování disciplíny",
+        points: 4,
+      },
+      {
+        id: 19,
+        question: "Jsou akční plány uzavřené?",
+        hint: "Splněné úkoly z posledního auditu",
+        points: 4,
+      },
+      {
+        id: 20,
+        question: "Probíhá trénink nováčků?",
+        hint: "Onboarding 5S",
+        points: 4,
+      },
+      {
+        id: 21,
+        question: "Je trend skóre pozitivní?",
+        hint: "Poslední výsledky",
+        points: 4,
+      },
+    ],
+    maxScore: 100,
+    passingScore: 70,
+    maxProblems: 5,
+  };
+
+  const existing = await prisma.fiveSSetting.findFirst({
+    where: { areaId: checklist.areaId, name: checklist.name },
+  });
+
+  if (existing) {
+    await prisma.fiveSSetting.update({ where: { id: existing.id }, data: checklist });
+  } else {
+    await prisma.fiveSSetting.create({ data: checklist });
+  }
+}
+
 async function seedQuests() {
   const quests = [
     {
@@ -155,6 +316,7 @@ async function main() {
   await seedSkills();
   const areasByName = await seedAreas();
   await seedAuditTemplates(areasByName);
+  await seedFiveSSettings(areasByName);
   await seedQuests();
 }
 
