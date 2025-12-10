@@ -31,7 +31,7 @@ router.get(
   "/areas",
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const areas = getAreasForUser(user.level);
+    const areas = getAreasForUser(user);
     res.json({ areas });
   })
 );
@@ -41,7 +41,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
     const areaId = Number(req.params.areaId);
-    const area = getAreaDetail(areaId, user.level);
+    const area = getAreaDetail(areaId, user);
     res.json(area);
   })
 );
