@@ -17,6 +17,7 @@ export type GembaAreaSummary = {
   locked: boolean;
   unlockAtLevel: number;
   activeProblems: number;
+  audience?: 'employee' | 'specialist';
 };
 
 export type GembaNpc = {

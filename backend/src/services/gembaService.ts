@@ -91,57 +91,24 @@ export type QuestState = {
 export type UserProgress = {
   level: number;
   totalXp: number;
+  role: string;
 };
 
-export type LeaderboardEntry = {
-  userId: number;
-  name: string;
-  role: "employee" | "specialist";
-  level: number;
-  xp: number;
-  team: string;
-  badges: number;
-  ideasApproved: number;
-};
+const baselineUnlockedAreas = new Set([1, 2, 3]);
 
-export type LeaderboardSummary = {
-  global: LeaderboardEntry[];
-  teams: { team: string; score: number; members: number }[];
-};
+function isAreaUnlocked(area: GembaArea, user: UserProgress) {
+  if (baselineUnlockedAreas.has(area.id)) {
+    return true;
+  }
 
-export type DailyChallenge = {
-  id: number;
-  title: string;
-  description: string;
-  rewardXp: number;
-  rewardPoints: number;
-  conceptFocus: LeanConcept;
-};
+  const isCiSpecialist = user.role === "ci" || user.role === "admin";
 
-export type BadgeSummary = {
-  id: number;
-  name: string;
-  description: string;
-  icon: string;
-  requirement: string;
-  xpReward: number;
-  pointsReward: number;
-  earnedAt?: Date;
-};
+  if (area.id === 5) {
+    return isCiSpecialist && user.level >= area.levelRequired;
+  }
 
-export type IdeaPayload = {
-  title: string;
-  problemContext: string;
-  proposedSolution: string;
-  impact: string;
-};
-
-export type IdeaSubmission = IdeaPayload & {
-  id: number;
-  userId: number;
-  status: "submitted" | "under_review" | "approved" | "rejected";
-  submittedAt: Date;
-};
+  return user.level >= area.levelRequired || isCiSpecialist;
+}
 
 const gembaAreas: GembaArea[] = [
   {
@@ -1174,16 +1141,21 @@ function questKey(userId: number, questId: number) {
   return `${userId}-${questId}`;
 }
 
-export function getAreasForUser(userLevel: number) {
-  return gembaAreas.map((area) => ({
-    ...area,
-    locked: userLevel < area.levelRequired,
-    unlockAtLevel: area.levelRequired,
-    activeProblems: area.problems.length,
-  }));
+export function getAreasForUser(user: UserProgress) {
+  return gembaAreas.map((area) => {
+    const unlocked = isAreaUnlocked(area, user);
+
+    return {
+      ...area,
+      locked: !unlocked,
+      unlockAtLevel: area.levelRequired,
+      activeProblems: area.problems.length,
+      audience: area.id === 5 ? "specialist" : "employee",
+    };
+  });
 }
 
-export function getAreaDetail(areaId: number, userLevel: number) {
+export function getAreaDetail(areaId: number, user: UserProgress) {
   const area = gembaAreas.find((item) => item.id === areaId);
   if (!area) {
     throw new NotFoundError("Area");
@@ -1191,7 +1163,8 @@ export function getAreaDetail(areaId: number, userLevel: number) {
 
   return {
     ...area,
-    locked: userLevel < area.levelRequired,
+    locked: !isAreaUnlocked(area, user),
+    audience: area.id === 5 ? "specialist" : "employee",
     npcs: gembaNpcs.filter((npc) => npc.areaId === areaId),
     problems: gembaProblems.filter((problem) => problem.areaId === areaId),
   };
@@ -1229,14 +1202,19 @@ export function getQuestStatus(questId: number, userId: number) {
   return state;
 }
 
-export async function ensureUser(reqUser?: { userId: number }): Promise<{ id: number; level: number; totalXp: number }> {
+export async function ensureUser(reqUser?: { userId: number }): Promise<{
+  id: number;
+  level: number;
+  totalXp: number;
+  role: string;
+}> {
   if (!reqUser) {
     throw new UnauthorizedError();
   }
 
   const user = await prisma.user.findUnique({
     where: { id: reqUser.userId },
-    select: { id: true, level: true, totalXp: true },
+    select: { id: true, level: true, totalXp: true, role: true },
   });
 
   if (!user) {
@@ -1257,8 +1235,12 @@ export function startQuest(questId: number, user: UserProgress & { id: number })
     throw new NotFoundError("Area");
   }
 
-  if (user.level < area.levelRequired) {
-    throw new ForbiddenError("Area locked - need higher level");
+  if (!isAreaUnlocked(area, user)) {
+    if (area.id === 5) {
+      throw new ForbiddenError("Area locked - CI specialist access required");
+    }
+
+    throw new ForbiddenError(`Area locked - reach level ${area.levelRequired} or join CI team`);
   }
 
   const state: QuestState = {
