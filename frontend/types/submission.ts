@@ -11,3 +11,17 @@ export type Submission = {
   createdAt: Date;
   quest: Quest;
 };
+
+export type SubmissionBadge = {
+  id: string | number;
+  name: string;
+  icon: string;
+};
+
+export type SubmissionFeedback = {
+  score: number;
+  feedback: string;
+  improvements?: string[];
+  xpEarned: number;
+  badgesUnlocked?: SubmissionBadge[];
+};
