@@ -1,0 +1,173 @@
+[
+  {
+    "code": "quest_5s_workplace",
+    "title": "Organizuj pracovní stanici",
+    "description": "Tvá pracovní plocha je zmatená. Musíš ji vyčistit a organizovat podle princípu 5S.",
+    "leanConcept": "5S",
+    "story": "Přišels do dílny a vidíš chaos. Nástroje jsou všude, jsou věci co nejsou potřeba. Čas na změnu! Aplikuj 5S princip: Sort (třídění), Set in order (uspořádání), Shine (čištění), Standardize (standardizace), Sustain (udržování).",
+    "objectives": [
+      "Identifikuj a odstraň zbytečné věci",
+      "Uspořádej zbývající nástroje na správná místa",
+      "Označ místa pro každou kategorii",
+      "Vyčisti pracovní plochu"
+    ],
+    "difficulty": "easy",
+    "xpReward": 100,
+    "timeEstimate": 15,
+    "skillUnlock": "5S_Level_1"
+  },
+  {
+    "code": "quest_kaizen_continuous",
+    "title": "Navrh kaizenu - malou zlepšení",
+    "description": "Identifikuj tři malá zlepšení v procesu a navrhni je týmu.",
+    "leanConcept": "Kaizen",
+    "story": "Continuous improvement není jen slovo. Podívej se kolem sebe a najdi věci, které by se daly dělat lépe. Není potřeba velkých změn - začni s malými kůčky!",
+    "objectives": [
+      "Pozoruj proces po dobu 30 minut",
+      "Identifikuj 3 neefektivní kroky",
+      "Zapiš návrh zlepšení pro každý",
+      "Prezentuj týmu svou ideu"
+    ],
+    "difficulty": "medium",
+    "xpReward": 150,
+    "timeEstimate": 30,
+    "skillUnlock": "Kaizen_Level_1"
+  },
+  {
+    "code": "quest_5why_root_cause",
+    "title": "Řeš problém - 5 Why analýza",
+    "description": "Běžná chyba se opakuje. Užij 5 Why techniky, abys našel kořen problému.",
+    "leanConcept": "ProblemSolving",
+    "story": "Opět se stala chyba. Povrchní 'řešení' to neřeší. Musíš jít hlouběji. Každý 'proč' ti přivede blíž k pravé příčině.",
+    "objectives": [
+      "Zapiš problém co nejjasnější",
+      "Zeptej se 'Proč?' a zapiš důvod",
+      "Zeptej se 'Proč?' znovu (na odpověď)",
+      "Opakuj 5 krát",
+      "Identifikuj kořen příčinu"
+    ],
+    "difficulty": "medium",
+    "xpReward": 200,
+    "timeEstimate": 25,
+    "skillUnlock": "ProblemSolving_Level_1"
+  },
+  {
+    "code": "quest_ishikawa_diagram",
+    "title": "Vytvořit Ishikawa diagram",
+    "description": "Seskupuj příčiny problému do kategorií: lidé, materiály, metody, stroje, prostředí.",
+    "leanConcept": "ProblemSolving",
+    "story": "Vidíš problém, ale jsou desítky možných příčin. Jak je systematicky rozdělit? Ishikawa diagram (rybí kost) je na to schválený nástroj.",
+    "objectives": [
+      "Vytvořit hlavní osu diagramu",
+      "Přidat 5-6 kategorií příčin",
+      "Vyplnit konkrétní příčiny",
+      "Identifikovat najpravděpodobnější příčiny"
+    ],
+    "difficulty": "medium",
+    "xpReward": 180,
+    "timeEstimate": 30,
+    "skillUnlock": null
+  },
+  {
+    "code": "quest_muda_identification",
+    "title": "Identifikuj Muda (plýtvání)",
+    "description": "Najdi příklady plýtvání (času, materiálu, pohybu) v procesu.",
+    "leanConcept": "5S",
+    "story": "V Lean jsou 8 typů plýtvání: transport, čekání, nadprodukce, chyby, pohyb, procesy, inventář, lidský potenciál. Kolik z nich vidíš v tvém procesu?",
+    "objectives": [
+      "Zmapuj všechny kroky procesu",
+      "Identifikuj 5+ příkladů plýtvání",
+      "Zařaď je do kategorií (transport, čekání, atd.)",
+      "Spočítej ztracený čas"
+    ],
+    "difficulty": "easy",
+    "xpReward": 120,
+    "timeEstimate": 20,
+    "skillUnlock": "5S_Level_2"
+  },
+  {
+    "code": "quest_standard_work",
+    "title": "Dokumentuj standardní práci",
+    "description": "Vytvoř step-by-step návod pro opakovaný proces.",
+    "leanConcept": "StandardWork",
+    "story": "Víš jak to dělat správně. Ale co když si to bude muset pamatovat někdo jiný? Standard work je to, co dělá expert, zapsáno tak, aby to zvládl kdokoliv.",
+    "objectives": [
+      "Vyber si процес co děláš denně",
+      "Rozpis ho do jednotlivých kroků",
+      "Pro každý krok: co se dělá, jak dlouho, s čím",
+      "Testuj na kolegovi - zvládá to?"
+    ],
+    "difficulty": "medium",
+    "xpReward": 140,
+    "timeEstimate": 25,
+    "skillUnlock": "StandardWork_Level_1"
+  },
+  {
+    "code": "quest_audit_5s",
+    "title": "Proveď 5S audit",
+    "description": "Vyhodnoť stav pracoviště podle kritérií 5S.",
+    "leanConcept": "5S",
+    "story": "Je čas zjistit, jak si vlastně stojíme. Audit není o kritice - je to zrcadlo. Budeš překvapen, co zjistíš.",
+    "objectives": [
+      "Doplň kontrolní seznam 5S",
+      "Fotograf 3 oblasti pracoviště",
+      "Spočítej skóre (0-100%)",
+      "Napiš 3 konkrétní akce ke zlepšení"
+    ],
+    "difficulty": "easy",
+    "xpReward": 110,
+    "timeEstimate": 20,
+    "skillUnlock": null
+  },
+  {
+    "code": "quest_mura_balancing",
+    "title": "Vyrovnaj zátěž - řeš Mura",
+    "description": "Identifikuj nerovnoměrné rozložení práce a navrhni vyrovnání.",
+    "leanConcept": "Kaizen",
+    "story": "Jeden člověk je zahlcený, druhý čeká. Toto je Mura (nerovnomírnost). Výsledek? Stres, chyby, neschopnost reagovat na změny.",
+    "objectives": [
+      "Zmapuj zátěž na jednotlivé pracovníky",
+      "Identifikuj 'peak' a 'valley' období",
+      "Navrhni redistribuci úkolů",
+      "Odhadni čas potřebný na implementaci"
+    ],
+    "difficulty": "hard",
+    "xpReward": 250,
+    "timeEstimate": 40,
+    "skillUnlock": "Kaizen_Level_2"
+  },
+  {
+    "code": "quest_gemba_walk",
+    "title": "Gemba Walk - pozoruj realitu",
+    "description": "Choď na pracovní místo, pozoruj práci a sbírej feedback.",
+    "leanConcept": "Gemba",
+    "story": "Lean se nerodí v zasedacích místnostech. 'Gemba' znamená skutečné místo kde se práce dělá. Jdi tam, koukej, poslouchej. Sám pochopíš.",
+    "objectives": [
+      "Vyberte si konkrétní pracovní proces",
+      "Pozoruj minimálně 2 cykly práce",
+      "Ptej se otázek: Proč to takhle dělají? Co je obtížné?",
+      "Zapiš 5+ pozorování"
+    ],
+    "difficulty": "easy",
+    "xpReward": 100,
+    "timeEstimate": 30,
+    "skillUnlock": "Gemba_Level_1"
+  },
+  {
+    "code": "quest_poka_yoke",
+    "title": "Navrhni Poka-Yoke (chybovost=0)",
+    "description": "Vytvoř jednoduchý mechanismus, který zabraní chybě.",
+    "leanConcept": "ProblemSolving",
+    "story": "Chyby se budou dít. Ale co když by byly nemožné? Poka-Yoke (chyba-odejmutí) je když systém fyzicky znemožní chybné operaci.",
+    "objectives": [
+      "Identifikuj chybu co se opakuje",
+      "Navrh fyzickou či procedurální ochranu",
+      "Otestuj, že chyba je opravdu nemožná",
+      "Odhadni náklady vs. benefit"
+    ],
+    "difficulty": "hard",
+    "xpReward": 220,
+    "timeEstimate": 35,
+    "skillUnlock": "ProblemSolving_Level_2"
+  }
+]

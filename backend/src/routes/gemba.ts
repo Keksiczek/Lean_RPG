@@ -119,8 +119,8 @@ router.post(
       await progressionService.addXp(user.id, xpEarned);
     }
 
-    const completedWalks = await prisma.quest.count({
-      where: { userId: user.id, questStatus: "completed" },
+    const completedWalks = await prisma.userQuest.count({
+      where: { userId: user.id, status: "completed" },
     });
     const achieved = await achievementService.updateAchievementProgress(
       user.id,

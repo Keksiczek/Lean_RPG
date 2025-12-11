@@ -1,5 +1,5 @@
 import prisma from "../lib/prisma.js";
-import { FiveSProblem, FiveSAudit, Area } from "@prisma/client";
+import { FiveSProblem, FiveSAudit, Area, FiveSSetting } from "@prisma/client";
 
 const severityWeight: Record<string, number> = {
   low: 1,
@@ -19,7 +19,11 @@ export function identifyMainIssue(problems: FiveSProblem[]): FiveSProblem | null
   return sorted[0];
 }
 
-export function generateFeedback(audit: FiveSAudit, area: Area, problems: FiveSProblem[]): string {
+export function generateFeedback(
+  audit: FiveSAudit & { setting?: FiveSSetting },
+  area: Area,
+  problems: FiveSProblem[],
+): string {
   const lines: string[] = [];
 
   if (audit.totalScore !== null && audit.totalScore !== undefined) {
@@ -66,7 +70,9 @@ export async function awardBadges(userId: number, latestScore: number) {
   return null;
 }
 
-export async function evaluateAudit(audit: FiveSAudit & { problems: FiveSProblem[]; area: Area }) {
+export async function evaluateAudit(
+  audit: FiveSAudit & { problems: FiveSProblem[]; area: Area; setting?: FiveSSetting },
+) {
   const mainIssue = identifyMainIssue(audit.problems);
   const feedback = generateFeedback(audit, audit.area, audit.problems);
   const badge = await awardBadges(audit.userId, audit.totalScore ?? 0);

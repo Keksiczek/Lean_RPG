@@ -13,21 +13,23 @@ export async function getChallenge(challengeId: number) {
   return prisma.problemSolvingChallenge.findUnique({ where: { id: challengeId } });
 }
 
+type AnalysisJsonInput = Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
+
 export async function startAnalysis(
   userId: number,
   challengeId: number,
   payload?: {
-    selectedCategories?: Prisma.JsonValue;
-    causes?: Prisma.JsonValue;
-  }
+    selectedCategories?: AnalysisJsonInput;
+    causes?: AnalysisJsonInput;
+  },
 ) {
   return prisma.problemAnalysis.create({
     data: {
       userId,
       challengeId,
       status: "in_progress",
-      selectedCategories: payload?.selectedCategories,
-      causes: payload?.causes,
+      selectedCategories: payload?.selectedCategories ?? Prisma.JsonNull,
+      causes: payload?.causes ?? Prisma.JsonNull,
     },
   });
 }
@@ -35,8 +37,8 @@ export async function startAnalysis(
 export async function updateAnalysis(
   analysisId: number,
   data: {
-    selectedCategories?: Prisma.JsonValue;
-    causes?: Prisma.JsonValue;
+    selectedCategories?: AnalysisJsonInput;
+    causes?: AnalysisJsonInput;
     rootCauseId?: number | null;
     rootCause?: string | null;
     proposedSolution?: string | null;
@@ -55,8 +57,8 @@ export async function submitAnalysis(
   analysisId: number,
   userId: number,
   payload: {
-    selectedCategories?: Prisma.JsonValue;
-    causes?: Prisma.JsonValue;
+    selectedCategories?: AnalysisJsonInput;
+    causes?: AnalysisJsonInput;
     rootCauseId?: number | null;
     rootCause?: string | null;
     proposedSolution?: string | null;
