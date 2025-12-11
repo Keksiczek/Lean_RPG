@@ -49,6 +49,66 @@ export type GembaNpc = {
   };
 };
 
+type LeaderboardEntry = {
+  userId: number;
+  name: string;
+  role: string;
+  level: number;
+  xp: number;
+  team: string;
+  badges: number;
+  ideasApproved: number;
+};
+
+type TeamStanding = {
+  team: string;
+  score: number;
+  members: number;
+};
+
+type DailyChallenge = {
+  id: number;
+  title: string;
+  description: string;
+  rewardXp: number;
+  rewardPoints: number;
+  conceptFocus: LeanConcept;
+};
+
+type BadgeSummary = {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  requirement: string;
+  xpReward: number;
+  pointsReward: number;
+  earnedAt?: Date;
+};
+
+type IdeaSubmission = {
+  id: number;
+  userId: number;
+  title: string;
+  problemContext: string;
+  proposedSolution: string;
+  impact: string;
+  status: string;
+  submittedAt: Date;
+};
+
+type IdeaPayload = {
+  title: string;
+  problemContext: string;
+  proposedSolution: string;
+  impact: string;
+};
+
+type LeaderboardSummary = {
+  global: LeaderboardEntry[];
+  teams: TeamStanding[];
+};
+
 export type GembaArea = {
   id: number;
   name: string;

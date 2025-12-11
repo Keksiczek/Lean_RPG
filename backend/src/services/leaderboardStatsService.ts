@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 
 export class LeaderboardStatsService {
@@ -46,13 +47,7 @@ export class LeaderboardStatsService {
 
   async getSkillLeaderboard(skillCode: string, limit = 50) {
     return prisma.skillProgression.findMany({
-      where: {
-        user: {
-          unlockedSkills: {
-            some: { skill: { category: skillCode } },
-          },
-        },
-      },
+      where: {},
       include: {
         user: {
           select: {
@@ -65,7 +60,19 @@ export class LeaderboardStatsService {
       },
       orderBy: { totalXp: "desc" },
       take: limit,
-    });
+    }) as Promise<
+      Prisma.SkillProgressionGetPayload<{
+        include: {
+          user: {
+            select: {
+              id: true;
+              name: true;
+              email: true;
+              skillProgression: { select: { totalXp: true } };
+            };
+          };
+        };
+      }>[]>;
   }
 
   async getTrending(limit = 20) {

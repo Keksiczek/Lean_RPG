@@ -63,7 +63,7 @@ router.post(
   "/analyses",
   asyncHandler(async (req: Request, res: Response) => {
     const payload = startSchema.parse(req.body);
-    const analysis = await startAnalysis(req.user!.id, payload.challengeId, payload);
+    const analysis = await startAnalysis(req.user!.userId, payload.challengeId, payload);
     res.status(201).json(analysis);
   })
 );
@@ -85,25 +85,25 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const analysisId = Number(req.params.analysisId);
     const payload = updateSchema.parse(req.body);
-    const analysis = await submitAnalysis(analysisId, req.user!.id, payload);
+    const analysis = await submitAnalysis(analysisId, req.user!.userId, payload);
     const xpEarned = analysis.xpGain ?? Math.floor((analysis.totalScore ?? 0) / 2);
 
     if (xpEarned > 0) {
-      await progressionService.addXp(req.user!.id, xpEarned);
+      await progressionService.addXp(req.user!.userId, xpEarned);
     }
 
     const completedCount = await prisma.problemAnalysis.count({
-      where: { userId: req.user!.id, status: "evaluated" },
+      where: { userId: req.user!.userId, status: "evaluated" },
     });
 
     const achieved = await achievementService.updateAchievementProgress(
-      req.user!.id,
+      req.user!.userId,
       "ishikawa_completed",
       completedCount,
     );
 
-    const badges = await badgeService.checkAndUnlockBadges(req.user!.id);
-    await leaderboardStatsService.updateStats(req.user!.id);
+    const badges = await badgeService.checkAndUnlockBadges(req.user!.userId);
+    await leaderboardStatsService.updateStats(req.user!.userId);
 
     const response: GameCompletionResponse<typeof analysis> = {
       ...analysis,
@@ -130,7 +130,7 @@ router.patch(
 router.get(
   "/history",
   asyncHandler(async (req: Request, res: Response) => {
-    const history = await getHistory(req.user!.id);
+    const history = await getHistory(req.user!.userId);
     res.json({ history });
   })
 );
