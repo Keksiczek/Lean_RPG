@@ -31,7 +31,7 @@ router.get(
     const myQuests = await prisma.userQuest.findMany({
       where: { userId: req.user.userId },
       include: { quest: true, submissions: true },
-      orderBy: { assignedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
     return res.json(myQuests);
@@ -42,7 +42,7 @@ router.get(
 router.post(
   "/assign",
   asyncHandler(async (req: Request, res: Response) => {
-    const { questId } = req.body as { questId?: number };
+    const { questId } = req.body as { questId?: string };
 
     if (!req.user) {
       throw new UnauthorizedError();
@@ -78,8 +78,8 @@ router.post(
       throw new UnauthorizedError();
     }
 
-    const questId = Number(req.params.id);
-    if (Number.isNaN(questId)) {
+    const questId = req.params.id;
+    if (!questId || questId.length === 0) {
       throw new ValidationError("Invalid quest id", { questId: req.params.id });
     }
 
@@ -112,9 +112,9 @@ router.post(
 router.get(
   "/:id",
   asyncHandler(async (req: Request, res: Response) => {
-    const questId = Number(req.params.id);
+    const questId = req.params.id;
 
-    if (Number.isNaN(questId)) {
+    if (!questId || questId.length === 0) {
       throw new ValidationError("Invalid quest id", { questId: req.params.id });
     }
 
