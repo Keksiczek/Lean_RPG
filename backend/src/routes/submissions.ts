@@ -11,7 +11,6 @@ import {
 import { validateBody, validateParams } from "../middleware/validation.js";
 import { enqueueSubmissionAnalysis } from "../queue/queueFactory.js";
 import { getJobStatus } from "../queue/submissionWorker.js";
-import { validateBody, validateParams } from "../middleware/validation.js";
 
 const router = Router();
 
@@ -149,7 +148,7 @@ router.get(
     const jobStatus = await getJobStatus(jobId);
 
     if (!jobStatus) {
-      throw new NotFoundError(`Job #${req.params.jobId}`);
+      throw new NotFoundError(`Job #${jobId}`);
     }
 
     return res.json({ job: jobStatus });
