@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { ValidationError } from "../middleware/errors.js";
+import { validateBody, validateParams } from "../middleware/validation.js";
 import {
   getAnalysis,
   getChallenge,
@@ -124,9 +125,11 @@ router.post(
 
 router.patch(
   "/analyses/:analysisId",
+  validateParams(z.object({ analysisId: z.coerce.number().int().positive() })),
+  validateBody(updateSchema),
   asyncHandler(async (req: Request, res: Response) => {
-    const analysisId = Number(req.params.analysisId);
-    const payload = updateSchema.parse(req.body);
+    const { analysisId } = req.validatedParams as { analysisId: number };
+    const payload = req.validatedBody as z.infer<typeof updateSchema>;
     const analysis = await updateAnalysis(analysisId, payload);
     res.json(analysis);
   })

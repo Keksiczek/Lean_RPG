@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { UnauthorizedError, ValidationError } from "../middleware/errors.js";
+import { validateParams } from "../middleware/validation.js";
 import { skillTreeService } from "../services/skillTreeService.js";
 import { skillUnlockService } from "../services/skillUnlockService.js";
 import { progressionService } from "../services/progressionService.js";

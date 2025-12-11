@@ -3,8 +3,8 @@ import os from "os";
 import { performance } from "perf_hooks";
 import prisma from "../lib/prisma.js";
 import redis from "../lib/redis.js";
-import { geminiService } from "../services/GeminiService.js";
 import logger from "../lib/logger.js";
+import { geminiService } from "../services/GeminiService.js";
 import { getQueueStats } from "../queue/queueFactory.js";
 
 const router = Router();
@@ -49,11 +49,28 @@ function getMemoryUsage() {
     rss_mb: Math.round(usage.rss / 1024 / 1024),
     heap_mb: Math.round(usage.heapTotal / 1024 / 1024),
   };
+  memory: {
+    used_mb: number;
+    rss_mb: number;
+    heap_mb: number;
+  };
+  uptime_seconds: number;
 }
 
-router.get("/health", async (req: Request, res: Response) => {
-  const requestId = req.requestId;
+async function checkDatabase() {
+  const start = performance.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    const latency_ms = Math.round(performance.now() - start);
+    return { status: "connected" as const, latency_ms };
+  } catch (error) {
+    logger.error("Healthcheck database failed", { context: "health", error });
+    return { status: "error" as const, latency_ms: Math.round(performance.now() - start) };
+  }
+}
 
+async function checkRedis() {
+  const start = performance.now();
   try {
     const [database, redisStatus] = await Promise.all([
       measureLatency(() => prisma.$queryRaw`SELECT 1` as any),
