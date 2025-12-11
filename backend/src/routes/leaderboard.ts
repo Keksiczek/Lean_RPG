@@ -258,9 +258,10 @@ router.get(
           GROUP BY DATE(s."createdAt")
           ORDER BY date
         `,
-        prisma.achievement.findMany({
+        prisma.userAchievement.findMany({
           where: { userId: id },
-          orderBy: { unlockedAt: "desc" },
+          orderBy: { completedAt: "desc" },
+          include: { achievement: { select: { name: true } } },
         }),
         prisma.submission.findMany({
           where: { userId: id, status: "approved" },
@@ -297,7 +298,7 @@ router.get(
       xpTrend,
       achievements:
         achievements.length > 0
-          ? achievements.map((achievement) => achievement.name)
+          ? achievements.map((achievement) => achievement.achievement.name)
           : DEFAULT_ACHIEVEMENTS,
       recentSubmissions: recentSubmissions.map((submission) => ({
         id: submission.id,
@@ -324,20 +325,6 @@ async function trackLeaderboardSnapshot() {
     FROM "User" u
     LIMIT 100
   `;
-
-  if (topPlayers.length === 0) {
-    return 0;
-  }
-
-  await prisma.leaderboardHistory.createMany({
-    data: topPlayers.map((player) => ({
-      userId: Number(player.id),
-      totalXp: Number(player.totalXp),
-      level: Number(player.level),
-      rank: Number(player.rank),
-      timestamp: new Date(),
-    })),
-  });
 
   return topPlayers.length;
 }
