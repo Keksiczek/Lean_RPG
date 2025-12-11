@@ -8,6 +8,7 @@ import { getSubmissionQueue, closeQueue } from "./queue/queueFactory.js";
 import { requestLogger } from "./middleware/logger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { verifyToken } from "./middleware/auth.js";
+import { globalRateLimiter, submissionRateLimiter } from "./middleware/rateLimiter.js";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -34,6 +35,7 @@ if (config.logging.enableHttpLogs) {
 
 app.use(cors({ origin: config.cors.origin }));
 app.use(express.json());
+app.use(globalRateLimiter);
 
 // Public routes
 app.use("/auth", authRoutes);
@@ -42,11 +44,11 @@ app.use(healthRouter);
 
 // Protected routes
 app.use("/quests", verifyToken, questRoutes);
-app.use("/submissions", verifyToken, submissionRoutes);
+app.use("/submissions", verifyToken, submissionRateLimiter, submissionRoutes);
 app.use("/users", verifyToken, userRoutes);
 app.use("/areas", verifyToken, areaRoutes);
 app.use("/api/quests", verifyToken, questRoutes);
-app.use("/api/submissions", verifyToken, submissionRoutes);
+app.use("/api/submissions", verifyToken, submissionRateLimiter, submissionRoutes);
 app.use("/api/users", verifyToken, userRoutes);
 app.use("/api/areas", verifyToken, areaRoutes);
 app.use("/api/jobs", verifyToken, jobsRouter);

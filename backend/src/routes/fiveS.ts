@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { ValidationError } from "../middleware/errors.js";
+import { validateBody, validateParams } from "../middleware/validation.js";
 import { ensureUser } from "../services/gembaService.js";
 import {
   addProblem,
@@ -69,13 +70,10 @@ router.get(
 
 router.post(
   "/audits",
+  validateBody(z.object({ areaId: z.coerce.number().int().positive() })),
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const areaId = Number(req.body.areaId);
-
-    if (!areaId) {
-      throw new ValidationError("areaId is required to start an audit");
-    }
+    const { areaId } = req.validated!.body as { areaId: number };
 
     const audit = await startAudit(user.id, areaId);
     res.status(201).json({ audit });
@@ -84,9 +82,10 @@ router.post(
 
 router.get(
   "/audits/:auditId",
+  validateParams(z.object({ auditId: z.coerce.number().int().positive() })),
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const auditId = Number(req.params.auditId);
+    const auditId = (req.validated!.params as { auditId: number }).auditId;
     const audit = await getAuditDetail(auditId, user.id);
 
     if (!audit) {
@@ -99,21 +98,19 @@ router.get(
 
 router.post(
   "/audits/:auditId/submit",
+  validateParams(z.object({ auditId: z.coerce.number().int().positive() })),
+  validateBody(submissionSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const auditId = Number(req.params.auditId);
-
-    const parsed = submissionSchema.safeParse(req.body);
-    if (!parsed.success) {
-      throw new ValidationError("Invalid submission payload", parsed.error.flatten());
-    }
+    const auditId = (req.validated!.params as { auditId: number }).auditId;
+    const parsed = req.validated!.body as z.infer<typeof submissionSchema>;
 
     const result = await submitAudit(
       auditId,
       user.id,
-      parsed.data.answers,
-      parsed.data.problems,
-      parsed.data.timeSpent
+      parsed.answers,
+      parsed.problems,
+      parsed.timeSpent
     );
     const xpEarned = result.xpGain ?? Math.floor((result.totalScore ?? 0) / 2);
 

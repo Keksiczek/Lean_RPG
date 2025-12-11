@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { NotFoundError, UnauthorizedError } from "../middleware/errors.js";
+import { validateBody } from "../middleware/validation.js";
 
 const router = Router();
 
@@ -54,12 +55,13 @@ router.get(
 
 router.put(
   "/me",
+  validateBody(updateUserSchema),
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       throw new UnauthorizedError();
     }
 
-    const { name } = updateUserSchema.parse(req.body);
+    const { name } = req.validated!.body as z.infer<typeof updateUserSchema>;
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.userId },

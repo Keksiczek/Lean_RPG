@@ -1,23 +1,16 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { config } from "../config.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { HttpError, NotFoundError, UnauthorizedError } from "../middleware/errors.js";
 import { verifyToken } from "../middleware/auth.js";
+import { authRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 const JWT_SECRET = config.auth.jwtSecret;
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -56,7 +49,7 @@ function toUserResponse(user: {
 
 router.post(
   "/register",
-  limiter,
+  authRateLimiter,
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password, name } = registerSchema.parse(req.body);
 
@@ -89,7 +82,7 @@ router.post(
 
 router.post(
   "/login",
-  limiter,
+  authRateLimiter,
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = loginSchema.parse(req.body);
 
