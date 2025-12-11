@@ -56,8 +56,9 @@ const problemSchema = z.object({
 
 router.get(
   "/settings/:areaId",
+  validateParams(z.object({ areaId: z.coerce.number().int().positive() })),
   asyncHandler(async (req: Request, res: Response) => {
-    const areaId = Number(req.params.areaId);
+    const { areaId } = req.validated!.params as { areaId: number };
     const setting = await getSetting(areaId);
 
     if (!setting) {
@@ -142,25 +143,24 @@ router.post(
 
 router.post(
   "/audits/:auditId/problem",
+  validateParams(z.object({ auditId: z.coerce.number().int().positive() })),
+  validateBody(problemSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const auditId = Number(req.params.auditId);
-    const parsed = problemSchema.safeParse(req.body);
+    const { auditId } = req.validated!.params as { auditId: number };
+    const data = req.validated!.body as z.infer<typeof problemSchema>;
 
-    if (!parsed.success) {
-      throw new ValidationError("Invalid problem payload", parsed.error.flatten());
-    }
-
-    const saved = await addProblem(auditId, user.id, parsed.data);
+    const saved = await addProblem(auditId, user.id, data);
     res.status(201).json(saved);
   })
 );
 
 router.get(
   "/audits/user/:userId",
+  validateParams(z.object({ userId: z.coerce.number().int().positive() })),
   asyncHandler(async (req: Request, res: Response) => {
     const user = await ensureUser(req.user);
-    const requestedUserId = Number(req.params.userId);
+    const { userId: requestedUserId } = req.validated!.params as { userId: number };
 
     if (requestedUserId !== user.id) {
       throw new ValidationError("You can only view your own audit history");
@@ -181,8 +181,9 @@ router.get(
 
 router.get(
   "/audits/:auditId/report",
+  validateParams(z.object({ auditId: z.coerce.number().int().positive() })),
   asyncHandler(async (req: Request, res: Response) => {
-    const auditId = Number(req.params.auditId);
+    const { auditId } = req.validated!.params as { auditId: number };
     const report = await exportAuditReport(auditId);
 
     if (!report) {
