@@ -1,21 +1,23 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { Providers } from './providers';
-
-const inter = Inter({ subsets: ['latin'] });
+import type { Metadata } from 'next'
+import './globals.css'
+import { Providers } from '@/src/components/Providers'
+import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'Lean RPG',
-  description: 'Frontend for Lean RPG'
-};
+  description: 'Gamified Lean training',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode
+}) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="cs">
+      <body className="bg-gray-50 text-gray-900">
         <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }

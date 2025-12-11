@@ -1,29 +1,27 @@
-"use client";
+import Link from 'next/link'
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { Loader2 } from 'lucide-react';
-
-export default function HomePage() {
-  const { user, loading, ready } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!ready) return;
-    if (user) {
-      router.replace('/dashboard');
-    } else {
-      router.replace('/login');
-    }
-  }, [user, ready, router]);
-
+export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center text-sm text-gray-700">
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <span>Načítání aplikace...</span>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800">
+      <div className="text-center px-4">
+        <h1 className="text-5xl font-bold text-white mb-4">Lean RPG</h1>
+        <p className="text-xl text-blue-100 mb-8">
+          Learn Lean methodologies through gamified mini-games
+        </p>
+
+        <div className="space-y-3">
+          <Link href="/auth/login">
+            <button className="w-full max-w-md bg-white text-blue-600 font-bold py-3 px-6 rounded-lg hover:bg-blue-50">
+              Login
+            </button>
+          </Link>
+          <Link href="/auth/register">
+            <button className="w-full max-w-md bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-400">
+              Register
+            </button>
+          </Link>
+        </div>
       </div>
-    </main>
-  );
+    </div>
+  )
 }

@@ -1,15 +1,32 @@
 {
-  "extends": "next/tsconfig.json",
+  "extends": "./next/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["./components/*"],
-      "@/data/*": ["./data/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/types/*": ["./types/*"],
-      "@/src/*": ["./src/*"]
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/data/*": [
+        "./data/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/src/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
