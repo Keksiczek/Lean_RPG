@@ -37,6 +37,10 @@ const envSchema = z
         return value === "true" || value === "1";
       }),
     APP_NAME: z.string().default("Lean RPG Backend"),
+    RATE_LIMIT_GLOBAL: z.coerce.number().int().positive().default(100),
+    RATE_LIMIT_AUTH: z.coerce.number().int().positive().default(5),
+    RATE_LIMIT_SUBMISSION: z.coerce.number().int().positive().default(10),
+    RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     BULL_QUEUE_MAX_RETRIES: z.coerce.number().int().positive().default(3),
     BULL_QUEUE_RETRY_DELAY: z.coerce.number().int().positive().default(2000),
     BULL_QUEUE_JOB_TIMEOUT: z.coerce.number().int().positive().default(120_000),
@@ -89,6 +93,12 @@ export const config = {
   logging: {
     level: env.LOG_LEVEL,
     enableHttpLogs: env.ENABLE_HTTP_LOGS,
+  },
+  rateLimit: {
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    global: env.RATE_LIMIT_GLOBAL,
+    auth: env.RATE_LIMIT_AUTH,
+    submission: env.RATE_LIMIT_SUBMISSION,
   },
   queue: {
     submission: {

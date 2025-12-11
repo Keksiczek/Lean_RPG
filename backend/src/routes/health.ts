@@ -6,29 +6,18 @@ import redis from "../lib/redis.js";
 import logger from "../lib/logger.js";
 import { geminiService } from "../services/GeminiService.js";
 import { getQueueStats } from "../queue/queueFactory.js";
+import type {
+  GeminiHealth,
+  HealthPayload,
+  MemoryUsageMb,
+  OverallStatus,
+  QueueHealth,
+  SubsystemHealth,
+} from "../types/health.js";
 
 const router = Router();
 
-type SubsystemStatus = "healthy" | "degraded" | "unhealthy";
-
-interface HealthSubsystem {
-  status: "connected" | "error";
-  latency_ms: number;
-  error?: string;
-}
-
-interface QueueHealth {
-  status: "running" | "stopped";
-  pending_jobs: number;
-  completed_jobs: number;
-  failed_jobs: number;
-}
-
-const measureLatency = async (fn: () => Promise<void>): Promise<{
-  status: "connected" | "error";
-  latency_ms: number;
-  error?: string;
-}> => {
+const measureLatency = async (fn: () => Promise<void>): Promise<SubsystemHealth> => {
   const start = performance.now();
   try {
     await fn();
@@ -42,35 +31,18 @@ const measureLatency = async (fn: () => Promise<void>): Promise<{
   }
 };
 
-function getMemoryUsage() {
+function getMemoryUsage(): MemoryUsageMb {
   const usage = process.memoryUsage();
   return {
     used_mb: Math.round(usage.heapUsed / 1024 / 1024),
     rss_mb: Math.round(usage.rss / 1024 / 1024),
     heap_mb: Math.round(usage.heapTotal / 1024 / 1024),
   };
-  memory: {
-    used_mb: number;
-    rss_mb: number;
-    heap_mb: number;
-  };
-  uptime_seconds: number;
 }
 
-async function checkDatabase() {
-  const start = performance.now();
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    const latency_ms = Math.round(performance.now() - start);
-    return { status: "connected" as const, latency_ms };
-  } catch (error) {
-    logger.error("Healthcheck database failed", { context: "health", error });
-    return { status: "error" as const, latency_ms: Math.round(performance.now() - start) };
-  }
-}
+router.get("/health", async (req: Request, res: Response) => {
+  const requestId = (req as Request & { requestId?: string }).requestId;
 
-async function checkRedis() {
-  const start = performance.now();
   try {
     const [database, redisStatus] = await Promise.all([
       measureLatency(() => prisma.$queryRaw`SELECT 1` as any),
@@ -93,22 +65,19 @@ async function checkRedis() {
         failed_jobs: stats.summary.failed,
       };
     } catch (error) {
-      logger.error("Healthcheck queue stats failed", {
-        context: "health",
-        error,
-        requestId,
-      });
+      logger.error("Queue stats failed", { context: "health", error, requestId });
     }
 
     const geminiCircuit = geminiService.getCircuitBreakerState();
-    const memory = getMemoryUsage();
-    const gemini: { circuit_breaker: string; failures: number; last_failure: Date | null } = {
+    const gemini: GeminiHealth = {
       circuit_breaker: geminiCircuit.state.toUpperCase(),
       failures: geminiCircuit.failureCount,
       last_failure: geminiCircuit.lastFailure,
     };
 
-    const subsystemStatuses: SubsystemStatus[] = [
+    const memory = getMemoryUsage();
+
+    const subsystemStatuses: OverallStatus[] = [
       database.status === "error" ? "unhealthy" : "healthy",
       redisStatus.status === "error" ? "unhealthy" : "healthy",
       gemini.circuit_breaker === "OPEN" ? "degraded" : "healthy",
@@ -120,7 +89,7 @@ async function checkRedis() {
         ? "degraded"
         : "healthy";
 
-    const payload = {
+    const payload: HealthPayload = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       database,
@@ -135,11 +104,7 @@ async function checkRedis() {
 
     res.status(overallStatus === "unhealthy" ? 503 : 200).json(payload);
   } catch (error) {
-    logger.error("Healthcheck fatal error", {
-      context: "health",
-      error,
-      requestId,
-    });
+    logger.error("Health check fatal error", { context: "health", error, requestId });
     res.status(503).json({
       status: "unhealthy",
       timestamp: new Date().toISOString(),

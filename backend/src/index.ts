@@ -33,6 +33,8 @@ if (config.logging.enableHttpLogs) {
   app.use(requestLogger);
 }
 
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: config.cors.origin }));
 app.use(express.json());
 app.use(globalRateLimiter);
