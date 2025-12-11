@@ -1,16 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuests } from '@/hooks/useQuests';
 import { QuestCard } from '@/components/QuestCard';
 import { QuestFilters } from '@/components/QuestFilters';
 import { Quest, Difficulty, LeanConcept } from '@/types/quest';
+import { QuestDetailModal } from '@/src/components/QuestDetailModal';
+import { useSubmissionStore } from '@/src/store/submissionStore';
 
 export default function QuestsPage() {
   const { data: quests = [], isLoading, error } = useQuests();
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | 'all'>('all');
   const [selectedConcept, setSelectedConcept] = useState<LeanConcept | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const resetSubmissionForm = useSubmissionStore((state) => state.resetForm);
+
+  const handleQuestClick = (quest: Quest) => {
+    resetSubmissionForm();
+    setSelectedQuest(quest);
+    setIsModalOpen(true);
+  };
 
   const filteredQuests = useMemo(() => {
     return quests.filter((quest: Quest) => {
@@ -80,7 +91,7 @@ export default function QuestsPage() {
         {filteredQuests.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredQuests.map((quest: Quest) => (
-              <QuestCard key={quest.id} quest={quest} />
+              <QuestCard key={quest.id} quest={quest} onSelect={handleQuestClick} />
             ))}
           </div>
         ) : (
@@ -89,6 +100,16 @@ export default function QuestsPage() {
           </div>
         )}
       </div>
+
+      <QuestDetailModal
+        quest={selectedQuest}
+        isOpen={isModalOpen}
+        onClose={() => {
+          resetSubmissionForm();
+          setIsModalOpen(false);
+          setSelectedQuest(null);
+        }}
+      />
     </div>
   );
 }
