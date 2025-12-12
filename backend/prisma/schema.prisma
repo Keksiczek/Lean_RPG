@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id         Int         @id @default(autoincrement())
+  tenantId   String      @default("default-tenant")
   email      String      @unique
   password   String
   name       String
@@ -32,6 +33,9 @@ model User {
   leaderboardStats LeaderboardStats?
   comparisonsAsUser1 PlayerComparison[] @relation("Player1")
   comparisonsAsUser2 PlayerComparison[] @relation("Player2")
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model Area {
@@ -41,7 +45,7 @@ model Area {
   workstations   Workstation[]
   quests         Quest[]
   knowledgePacks KnowledgePack[]
-  auditTemplates AuditTemplate[]
+  auditTemplates LegacyAuditTemplate[]
   fiveSSettings  FiveSSetting[]
   fiveSAudits    FiveSAudit[]
   problemSolvingChallenges ProblemSolvingChallenge[]
@@ -305,43 +309,51 @@ model QuestOption {
   quest    Quest  @relation(fields: [questId], references: [id])
 }
 
-model AuditTemplate {
-  id     Int         @id @default(autoincrement())
+model LegacyAuditTemplate {
+  id     Int                @id @default(autoincrement())
   name   String
   type   String
   areaId Int?
-  items  AuditItem[]
-  audits Audit[]
-  area   Area?       @relation(fields: [areaId], references: [id])
+  items  LegacyAuditItem[]
+  audits LegacyAudit[]
+  area   Area?              @relation(fields: [areaId], references: [id])
+
+  @@map("LegacyAuditTemplate")
 }
 
-model AuditItem {
-  id         Int           @id @default(autoincrement())
+model LegacyAuditItem {
+  id         Int                   @id @default(autoincrement())
   templateId Int
   question   String
-  weight     Int           @default(1)
-  template   AuditTemplate @relation(fields: [templateId], references: [id])
-  results    AuditResult[]
+  weight     Int                   @default(1)
+  template   LegacyAuditTemplate   @relation(fields: [templateId], references: [id])
+  results    LegacyAuditResult[]
+
+  @@map("LegacyAuditItem")
 }
 
-model Audit {
-  id         Int           @id @default(autoincrement())
+model LegacyAudit {
+  id         Int                @id @default(autoincrement())
   userId     Int
   templateId Int
   score      Int?
-  results    AuditResult[]
-  createdAt  DateTime      @default(now())
-  user       User          @relation(fields: [userId], references: [id])
-  template   AuditTemplate @relation(fields: [templateId], references: [id])
+  results    LegacyAuditResult[]
+  createdAt  DateTime           @default(now())
+  user       User               @relation(fields: [userId], references: [id])
+  template   LegacyAuditTemplate @relation(fields: [templateId], references: [id])
+
+  @@map("LegacyAudit")
 }
 
-model AuditResult {
-  id      Int       @id @default(autoincrement())
+model LegacyAuditResult {
+  id      Int           @id @default(autoincrement())
   auditId Int
   itemId  Int
   score   Int
-  audit   Audit     @relation(fields: [auditId], references: [id])
-  item    AuditItem @relation(fields: [itemId], references: [id])
+  audit   LegacyAudit   @relation(fields: [auditId], references: [id])
+  item    LegacyAuditItem @relation(fields: [itemId], references: [id])
+
+  @@map("LegacyAuditResult")
 }
 
 model FiveSSetting {
@@ -534,4 +546,123 @@ model PlayerComparison {
   @@unique([userId1, userId2])
   @@index([userId1])
   @@index([userId2])
+}
+
+model Tenant {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  name               String
+  description        String?
+  language           String   @default("en")
+  locale             String   @default("en-US")
+  defaultTheme       String   @default("light")
+  leanMethodologies  String[] @default(["5S", "LPA", "Ishikawa"])
+  logoUrl            String?
+  primaryColor       String?
+  secondaryColor     String?
+  timezone           String   @default("Europe/Prague")
+  maxPlayers         Int      @default(1000)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  users          User[]
+  factories      FactoryConfiguration[]
+  auditTemplates AuditTemplate[]
+  lpaTemplates   LPATemplate[]
+
+  @@index([slug])
+}
+
+model FactoryConfiguration {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name             String
+  description      String?
+  type             String   @default("production")
+
+  zones            Zone[]
+  workshops        Workshop[]
+  auditTemplates   AuditTemplate[]
+
+  defaultChecklist String[]
+  fiveS_SortItems  String[]
+  fiveS_SetLocations String[]
+  fiveS_ShineAreas String[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+  @@unique([tenantId, name])
+}
+
+model Zone {
+  id        String   @id @default(cuid())
+  factoryId String
+  factory   FactoryConfiguration @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+
+  name      String
+  coordinates Json
+  status    String   @default("optimal")
+
+  workshops Workshop[]
+
+  @@index([factoryId])
+}
+
+model Workshop {
+  id             String   @id @default(cuid())
+  factoryId      String
+  factory        FactoryConfiguration @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+  zoneId         String?
+  zone           Zone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  name           String
+  description    String?
+  redTags        Int      @default(0)
+  activeTraining Int      @default(0)
+
+  @@index([factoryId])
+  @@index([zoneId])
+}
+
+model AuditTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  factoryId   String?
+  factory     FactoryConfiguration? @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  difficulty  String
+  category    String
+  items       Json[]
+  xpReward    Int      @default(150)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([factoryId])
+}
+
+model LPATemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  factoryId   String?
+  factory     FactoryConfiguration? @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  frequency   String
+  questions   Json[]
+  xpReward    Int      @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([factoryId])
 }
