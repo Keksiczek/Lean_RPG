@@ -1,0 +1,40 @@
+name: Multi-Tenant Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test:coverage
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/coverage-final.json
+      
+      - name: Check coverage threshold
+        working-directory: frontend
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | grep '"lines"' | head -1 | grep -oP '"pct":\K[^,}]+')
+          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            echo "Coverage below 90%: $COVERAGE"
+            exit 1
+          fi
+      
+      - name: Build
+        working-directory: frontend
+        run: npm run build
