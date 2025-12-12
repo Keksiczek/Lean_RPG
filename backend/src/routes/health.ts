@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import os from "os";
 import { performance } from "perf_hooks";
 import prisma from "../lib/prisma.js";
-import redis from "../lib/redis.js";
+import { getRedis } from "../lib/redis.js";
 import logger from "../lib/logger.js";
 import { geminiService } from "../services/GeminiService.js";
 import { getQueueStats } from "../queue/queueFactory.js";
@@ -42,11 +42,12 @@ function getMemoryUsage(): MemoryUsageMb {
 
 router.get("/health", async (req: Request, res: Response) => {
   const requestId = (req as Request & { requestId?: string }).requestId;
+  const redisClient = getRedis();
 
   try {
     const [database, redisStatus] = await Promise.all([
       measureLatency(() => prisma.$queryRaw`SELECT 1` as any),
-      measureLatency(() => redis.ping() as any),
+      measureLatency(() => redisClient.ping() as any),
     ]);
 
     let queue: QueueHealth = {

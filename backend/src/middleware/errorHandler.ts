@@ -22,8 +22,10 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     });
 
     return res.status(err.statusCode).json({
+      success: false,
       error: err.message,
       code: err.code,
+      statusCode: err.statusCode,
       ...(err.details && { details: err.details }),
       timestamp: new Date().toISOString(),
       requestId,
@@ -40,8 +42,10 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
   });
 
   res.status(500).json({
+    success: false,
     error: "Internal server error",
     code: "INTERNAL_ERROR",
+    statusCode: 500,
     timestamp: new Date().toISOString(),
     requestId,
   });

@@ -1,5 +1,5 @@
 import Queue, { Job, JobOptions } from "bull";
-import redis from "../lib/redis.js";
+import { getRedis } from "../lib/redis.js";
 import { JOB_TYPES, SubmissionAnalysisJob, JobResult } from "../types/jobs.js";
 import logger from "../lib/logger.js";
 import { config } from "../config.js";
@@ -21,7 +21,7 @@ export function getSubmissionQueue(): SubmissionQueue {
   submissionQueue = new Queue<SubmissionAnalysisJob, JobResult>(
     JOB_TYPES.SUBMISSION_ANALYSIS,
     {
-      redis,
+      redis: getRedis(),
       settings: {
         maxStalledCount: 2, // Max times job can be reprocessed
         lockRenewTime: 30_000, // Renew lock every 30s

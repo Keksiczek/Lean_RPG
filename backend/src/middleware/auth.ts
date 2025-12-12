@@ -40,3 +40,15 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
     return next(new HttpError("Invalid token", 401));
   }
 }
+
+export function adminCheck(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(new HttpError("Missing token", 401, "UNAUTHORIZED"));
+  }
+
+  if (req.user.role !== "admin") {
+    return next(new HttpError("Admin access required", 403, "FORBIDDEN"));
+  }
+
+  return next();
+}

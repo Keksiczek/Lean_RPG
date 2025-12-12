@@ -5,5 +5,8 @@ declare module "express-serve-static-core" {
     validatedBody?: unknown;
     validatedParams?: unknown;
     validatedQuery?: unknown;
+    tenantId?: string;
+    tenantSlug?: string;
+    tenant?: import("@prisma/client").Tenant;
   }
 }
