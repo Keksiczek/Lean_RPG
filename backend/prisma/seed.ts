@@ -503,6 +503,226 @@ async function seedLeaderboardStats() {
   }
 }
 
+async function seedMultiTenantDemo() {
+  console.log("🏭 Seeding multi-tenant demo tenants...");
+
+  await prisma.tenant.upsert({
+    where: { slug: "skoda-mlada-boleslav" },
+    update: {},
+    create: {
+      id: "skoda-tenant",
+      slug: "skoda-mlada-boleslav",
+      name: "Škoda Mladá Boleslav",
+      description: "Automotive manufacturing facility in Czech Republic",
+      language: "cs",
+      locale: "cs-CZ",
+      defaultTheme: "light",
+      leanMethodologies: ["5S", "LPA", "Ishikawa"],
+      primaryColor: "#00AA44",
+      secondaryColor: "#003366",
+      timezone: "Europe/Prague",
+      logoUrl: "https://example.com/skoda-logo.png",
+      factories: {
+        create: [
+          {
+            name: "Assembly Line A",
+            type: "production",
+            description: "Main assembly line for chassis welding",
+            defaultChecklist: [
+              "Safety equipment available",
+              "Work area clean",
+              "Tools in shadow boards",
+              "No trip hazards",
+              "First piece inspection done",
+            ],
+            fiveS_SortItems: ["Tools", "Raw material", "Fixtures"],
+            fiveS_SetLocations: ["Shadow boards", "Material racks"],
+            fiveS_ShineAreas: ["Work area", "Walkways"],
+            zones: {
+              create: [
+                {
+                  name: "Welding Zone",
+                  coordinates: { x: 20, y: 30 },
+                  status: "warning",
+                },
+                {
+                  name: "Assembly Zone",
+                  coordinates: { x: 50, y: 40 },
+                  status: "optimal",
+                },
+              ],
+            },
+            workshops: {
+              create: [
+                { name: "Welding Station 1", description: "Robot welding" },
+                { name: "Welding Station 2", description: "Manual welding" },
+                { name: "Assembly Station", description: "Component assembly" },
+              ],
+            },
+            auditTemplates: {
+              create: [
+                {
+                  title: "Welding Station 5S Audit",
+                  description: "Identify waste and organization issues in welding area",
+                  difficulty: "medium",
+                  category: "5S",
+                  xpReward: 250,
+                  items: [
+                    { id: "item-1", name: "Broken welding rod", status: "broken", correctAction: "remove" },
+                    { id: "item-2", name: "Oil spill on floor", status: "dirty", correctAction: "clean" },
+                    { id: "item-3", name: "Welding curtain", status: "clean", correctAction: "keep" },
+                    { id: "item-4", name: "Loose cables", status: "misplaced", correctAction: "organize" },
+                  ],
+                },
+                {
+                  title: "Paint Shop Organization Audit",
+                  description: "Check cleanliness and proper material storage",
+                  difficulty: "medium",
+                  category: "5S",
+                  xpReward: 200,
+                  items: [
+                    { id: "item-5", name: "Empty paint cans", status: "broken", correctAction: "remove" },
+                    { id: "item-6", name: "Spilled paint on shelf", status: "dirty", correctAction: "clean" },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            name: "Paint Shop",
+            type: "production",
+            description: "Paint and finishing",
+            defaultChecklist: [
+              "Ventilation filters checked",
+              "Paints stored in fireproof cabinet",
+              "PPE available at entrance",
+              "Waste disposal proper",
+            ],
+            fiveS_SortItems: ["Solvents", "Paint cans"],
+            fiveS_SetLocations: ["Storage cabinets"],
+            fiveS_ShineAreas: ["Spray booth"],
+            zones: {
+              create: [
+                { name: "Spray Booth", coordinates: { x: 70, y: 50 }, status: "optimal" },
+              ],
+            },
+            workshops: {
+              create: [
+                { name: "Spray Booth 1" },
+                { name: "Spray Booth 2" },
+              ],
+            },
+            auditTemplates: {
+              create: [
+                {
+                  title: "Paint Booth 5S Audit",
+                  description: "Check ventilation, PPE and organization",
+                  difficulty: "medium",
+                  category: "5S",
+                  xpReward: 200,
+                  items: [
+                    { id: "item-7", name: "Ventilation filters", status: "clean", correctAction: "keep" },
+                    { id: "item-8", name: "Open solvent bottle", status: "misplaced", correctAction: "organize" },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      lpaTemplates: {
+        create: [
+          {
+            title: "Daily Welding Station Check",
+            description: "Verify safety and process compliance",
+            frequency: "Daily",
+            xpReward: 150,
+            questions: [
+              { id: "q1", question: "Is welding curtain fully closed?", category: "Safety", correctAnswer: "Yes" },
+              { id: "q2", question: "Are current and voltage settings correct?", category: "Process", correctAnswer: "Yes" },
+              { id: "q3", question: "Is fume extraction system active?", category: "Safety", correctAnswer: "Yes" },
+            ],
+          },
+          {
+            title: "Weekly Paint Shop LPA",
+            description: "Deep dive into paint application standards",
+            frequency: "Weekly",
+            xpReward: 300,
+            questions: [
+              { id: "q4", question: "Are paints stored in fireproof cabinet?", category: "Safety", correctAnswer: "Yes" },
+              { id: "q5", question: "Is spray technique following standard work?", category: "Process", correctAnswer: "Yes" },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.tenant.upsert({
+    where: { slug: "novartis-pharma" },
+    update: {},
+    create: {
+      id: "novartis-tenant",
+      slug: "novartis-pharma",
+      name: "Novartis Pharmaceutical",
+      description: "Pharmaceutical manufacturing - GMP compliance required",
+      language: "en",
+      locale: "en-US",
+      defaultTheme: "light",
+      leanMethodologies: ["5S", "LPA"],
+      primaryColor: "#0066CC",
+      secondaryColor: "#FF6600",
+      timezone: "Europe/Zurich",
+      factories: {
+        create: [
+          {
+            name: "Tablet Manufacturing",
+            type: "production",
+            description: "Tablet compression and packaging",
+            defaultChecklist: [
+              "Cleanroom airflow active",
+              "Materials properly labeled",
+              "Calibration stickers valid",
+              "No unauthorized materials present",
+            ],
+            fiveS_SortItems: ["Ingredients", "Tools"],
+            fiveS_SetLocations: ["Weighing room storage", "Cleanroom cabinets"],
+            fiveS_ShineAreas: ["Compression area", "QC Lab"],
+            zones: {
+              create: [
+                { name: "Compression Area", coordinates: { x: 30, y: 40 }, status: "optimal" },
+                { name: "Quality Control", coordinates: { x: 70, y: 50 }, status: "optimal" },
+              ],
+            },
+            workshops: {
+              create: [
+                { name: "Compression Machine 1" },
+                { name: "Compression Machine 2" },
+                { name: "QC Lab Station" },
+              ],
+            },
+          },
+        ],
+      },
+      lpaTemplates: {
+        create: [
+          {
+            title: "GMP Compliance Check",
+            description: "Daily verification of Good Manufacturing Practice",
+            frequency: "Daily",
+            xpReward: 200,
+            questions: [
+              { id: "gmp1", question: "Is cleanroom airflow active and verified?", category: "Safety", correctAnswer: "Yes" },
+              { id: "gmp2", question: "Are all materials properly labeled with batch numbers?", category: "Quality", correctAnswer: "Yes" },
+              { id: "gmp3", question: "Has first piece inspection been completed?", category: "Quality", correctAnswer: "Yes" },
+            ],
+          },
+        ],
+      },
+    },
+  });
+}
+
 async function main() {
   try {
     console.log("🌱 Starting seed...");
@@ -515,6 +735,7 @@ async function main() {
     await seedAuditTemplates();
     await seedBadges();
     await seedAchievements();
+    await seedMultiTenantDemo();
     await seedLeaderboardStats();
 
     console.log("🎉 Seed completed successfully!");
