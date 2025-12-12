@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev --name init",
     "prisma:seed": "node --loader ts-node/esm prisma/seed.ts",
+    "verify:seed": "node --loader ts-node/esm scripts/verify-seed.ts",
     "db:reset": "prisma migrate reset --force",
     "db:setup": "npm run prisma:migrate && npm run prisma:seed"
   },

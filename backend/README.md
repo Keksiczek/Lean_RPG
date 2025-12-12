@@ -11,3 +11,5 @@ Express + Prisma API for Lean_RPG.
 - `npm run dev` – start the API server
 - `npm run lint` – lint backend code
 - `npm run test` – run backend tests
+- `npm run prisma:seed` – seed Magna Nymburk production dataset
+- `npm run verify:seed` – validate seeded hierarchy and templates

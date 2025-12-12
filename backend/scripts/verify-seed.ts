@@ -1,59 +1,115 @@
-import assert from "assert";
+import assert from "node:assert";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function verifySeedData() {
-  const skoda = await prisma.tenant.findUnique({
-    where: { slug: "skoda-mlada-boleslav" },
+type TenantSummary = {
+  factories: number;
+  zones: number;
+  workshops: number;
+  auditTemplates: number;
+  lpaTemplates: number;
+};
+
+function logHeader(title: string) {
+  console.log("\n==============================");
+  console.log(title);
+  console.log("==============================");
+}
+
+function printFactoryBreakdown(summary: TenantSummary) {
+  console.log("Factory summary:");
+  console.log(` - Factories: ${summary.factories}`);
+  console.log(` - Zones: ${summary.zones}`);
+  console.log(` - Workstations: ${summary.workshops}`);
+}
+
+function printTemplateBreakdown(summary: TenantSummary) {
+  console.log("Template summary:");
+  console.log(` - Audit templates: ${summary.auditTemplates}`);
+  console.log(` - LPA templates: ${summary.lpaTemplates}`);
+}
+
+function summarizeTenant(tenant: NonNullable<Awaited<ReturnType<typeof loadTenant>>>) {
+  const factories = tenant.factories.length;
+  const zones = tenant.factories.reduce((sum, factory) => sum + factory.zones.length, 0);
+  const workshops = tenant.factories.reduce((sum, factory) => sum + factory.workshops.length, 0);
+
+  return {
+    factories,
+    zones,
+    workshops,
+    auditTemplates: tenant.auditTemplates.length,
+    lpaTemplates: tenant.lpaTemplates.length,
+  } satisfies TenantSummary;
+}
+
+async function loadTenant() {
+  return prisma.tenant.findUnique({
+    where: { slug: "magna-nymburk" },
     include: {
-      factories: { include: { zones: true, workshops: true, auditTemplates: true } },
+      factories: { include: { zones: true, workshops: true } },
       auditTemplates: true,
       lpaTemplates: true,
     },
   });
+}
 
-  assert(skoda, "Skoda tenant should exist");
-  assert(skoda.language === "cs", "Language should be Czech");
-  const skodaFactories = skoda.factories || [];
-  const totalZones = skodaFactories.reduce((sum, factory) => sum + factory.zones.length, 0);
-  const totalWorkshops = skodaFactories.reduce((sum, factory) => sum + factory.workshops.length, 0);
-
-  console.log("✅ Skoda tenant loaded");
-  console.log(`   - Factories: ${skodaFactories.length}`);
-  console.log(`   - Total zones: ${totalZones}`);
-  console.log(`   - Total workshops: ${totalWorkshops}`);
-  console.log(`   - Audit templates: ${skoda.auditTemplates.length}`);
-  console.log(`   - LPA templates: ${skoda.lpaTemplates.length}`);
-
-  assert(skodaFactories.length >= 2, "Skoda should have at least two factories");
-  assert(totalZones >= 3, "Skoda should have at least three zones");
-  assert(totalWorkshops >= 5, "Skoda should have at least five workshops");
-
-  const pharma = await prisma.tenant.findUnique({
-    where: { slug: "novartis-pharma" },
-    include: {
-      factories: { include: { zones: true, workshops: true } },
-      lpaTemplates: true,
-    },
+function verifyFactories(tenant: NonNullable<Awaited<ReturnType<typeof loadTenant>>>) {
+  assert(tenant.factories.length === 5, "✗ Should have 5 factories");
+  tenant.factories.forEach((factory) => {
+    assert(factory.zones.length >= 2, `✗ ${factory.name} should have at least 2 zones`);
+    assert(factory.workshops.length >= factory.zones.length, "✗ Each factory should have workshops mapped to zones");
   });
+}
 
-  assert(pharma, "Novartis tenant should exist");
-  assert(pharma.language === "en", "Pharma tenant should be English");
-  console.log("✅ Pharma tenant loaded");
-  console.log(`   - Factories: ${pharma?.factories.length ?? 0}`);
-  console.log(`   - Zones: ${pharma?.factories[0]?.zones.length ?? 0}`);
-  console.log(`   - LPA templates: ${pharma?.lpaTemplates.length ?? 0}`);
+function verifyCounts(summary: TenantSummary) {
+  assert(summary.zones >= 20, `✗ Should have 20+ zones, got ${summary.zones}`);
+  assert(summary.workshops >= 40, `✗ Should have 40+ workshops, got ${summary.workshops}`);
+}
 
-  assert(pharma?.factories.length === 1, "Pharma should have one factory");
-  assert((pharma?.lpaTemplates.length ?? 0) >= 1, "Pharma should have at least one LPA template");
+function verifyTemplates(tenant: NonNullable<Awaited<ReturnType<typeof loadTenant>>>) {
+  assert(tenant.auditTemplates.length >= 5, "✗ Should have 5+ audit templates");
+  const fiveS = tenant.auditTemplates.filter((template) => template.category === "5S");
+  assert(fiveS.length === 5, `✗ Should have 5x 5S audits, got ${fiveS.length}`);
 
-  console.log("✅ All seed data verified");
+  assert(tenant.lpaTemplates.length >= 4, "✗ Should have 4+ LPA templates");
+
+  const totalLpaQuestions = tenant.lpaTemplates.reduce((sum, template) => sum + (template.questions?.length ?? 0), 0);
+  assert(totalLpaQuestions >= 15, `✗ Expected 15+ LPA questions, got ${totalLpaQuestions}`);
+}
+
+function verifyMetadata(tenant: NonNullable<Awaited<ReturnType<typeof loadTenant>>>) {
+  assert(tenant.language === "cs", "✗ Language should be Czech");
+  assert(tenant.locale === "cs-CZ", "✗ Locale should be Czech");
+  assert(tenant.timezone === "Europe/Prague", "✗ Timezone should be Europe/Prague");
+}
+
+async function verifySeedData() {
+  logHeader("MAGNA Nymburk Seed Verification");
+  const tenant = await loadTenant();
+  assert(tenant, "✗ Tenant magna-nymburk should be created");
+  console.log("✅ Tenant Magna Nymburk loaded");
+
+  verifyMetadata(tenant);
+  verifyFactories(tenant);
+
+  const summary = summarizeTenant(tenant);
+  verifyCounts(summary);
+  verifyTemplates(tenant);
+
+  logHeader("Verification results");
+  printFactoryBreakdown(summary);
+  printTemplateBreakdown(summary);
+
+  console.log("✅ All seed data verified!");
+  console.log(`   - Language: ${tenant.language}`);
+  console.log(`   - Timezone: ${tenant.timezone}`);
 }
 
 verifySeedData()
   .catch((error) => {
-    console.error("❌ Seed verification failed", error);
+    console.error("❌ Verification failed", error);
     process.exit(1);
   })
   .finally(async () => {

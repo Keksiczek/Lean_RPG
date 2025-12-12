@@ -1,29 +1,55 @@
 import { PrismaClient } from "@prisma/client";
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { seedMagnaTenant } from "../prisma/seed";
 
-describe.skip("Seed Data", () => {
-  const prisma = new PrismaClient();
+const prisma = new PrismaClient();
+
+describe("Seed Data - Magna Nymburk", () => {
+  beforeAll(async () => {
+    await seedMagnaTenant();
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
   });
 
-  it("should create automotive tenant with complete hierarchy", async () => {
-    const skoda = await prisma.tenant.findUnique({
-      where: { slug: "skoda-mlada-boleslav" },
-      include: { factories: { include: { zones: true, workshops: true } } },
+  it("should create tenant with 5 factories", async () => {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: "magna-nymburk" },
+      include: { factories: true },
     });
-    expect(skoda).toBeDefined();
-    expect(skoda?.factories.length ?? 0).toBeGreaterThanOrEqual(2);
-    const zones = skoda?.factories.reduce((sum, f) => sum + f.zones.length, 0) ?? 0;
-    expect(zones).toBeGreaterThan(0);
+    expect(tenant?.factories.length).toBe(5);
   });
 
-  it("should create pharmaceutical tenant with GMP templates", async () => {
-    const pharma = await prisma.tenant.findUnique({
-      where: { slug: "novartis-pharma" },
-      include: { lpaTemplates: true },
+  it("should create 40+ total workshops", async () => {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: "magna-nymburk" },
+      include: { factories: { include: { workshops: true } } },
     });
-    expect((pharma?.lpaTemplates.length ?? 0)).toBeGreaterThan(0);
-    expect(pharma?.lpaTemplates[0]?.title ?? "").toContain("GMP");
+    const total = tenant?.factories.reduce((sum, f) => sum + f.workshops.length, 0) ?? 0;
+    expect(total).toBeGreaterThanOrEqual(40);
+  });
+
+  it("should create 5x 5S audit templates", async () => {
+    const audits = await prisma.auditTemplate.findMany({
+      where: { tenant: { slug: "magna-nymburk" }, category: "5S" },
+    });
+    expect(audits.length).toBe(5);
+  });
+
+  it("should create 4+ LPA templates", async () => {
+    const lpas = await prisma.lPATemplate.findMany({
+      where: { tenant: { slug: "magna-nymburk" } },
+    });
+    expect(lpas.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("should have correct tenant metadata", async () => {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: "magna-nymburk" },
+    });
+    expect(tenant?.language).toBe("cs");
+    expect(tenant?.locale).toBe("cs-CZ");
+    expect(tenant?.timezone).toBe("Europe/Prague");
   });
 });
